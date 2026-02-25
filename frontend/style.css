@@ -48,6 +48,16 @@ header {
 header h1 {
     font-size: 1.5rem;
     font-weight: 700;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.4rem;
+}
+
+.header-logo {
+    height: 1.5rem;
+    width: 1.5rem;
+    object-fit: contain;
 }
 
 /* Tabs */

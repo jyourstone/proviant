@@ -1,6 +1,8 @@
 # Proviant
 
 Swedish home pantry management app — track items across freezer (frys), fridge (kyl), and pantry (skafferi). Built for self-hosting on Docker (Unraid, home servers, VPS).
+All front-end text displayed to users and admins should be in Swedish.
+Will primarily be used on an iPhone, take that into account when building the front-end.
 
 ## Stack
 

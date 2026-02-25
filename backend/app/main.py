@@ -2,10 +2,12 @@
 
 import os
 from contextlib import asynccontextmanager
+from pathlib import Path
 from typing import Optional
 
 import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
@@ -179,4 +181,23 @@ async def add_to_shopping_list(req: ShoppingListRequest):
 
 # --- Static files (frontend) ---
 
-app.mount("/", StaticFiles(directory="frontend", html=True), name="frontend")
+APP_VERSION = app.version
+
+
+@app.get("/api/version")
+def get_version():
+    """Return current app version."""
+    return {"version": APP_VERSION}
+
+
+@app.get("/", response_class=HTMLResponse)
+def serve_index():
+    """Serve index.html with cache-busting version parameter."""
+    html_path = Path("frontend/index.html")
+    html = html_path.read_text(encoding="utf-8")
+    html = html.replace('href="/style.css"', f'href="/style.css?v={APP_VERSION}"')
+    html = html.replace('src="/app.js"', f'src="/app.js?v={APP_VERSION}"')
+    return HTMLResponse(content=html, headers={"Cache-Control": "no-cache"})
+
+
+app.mount("/", StaticFiles(directory="frontend"), name="frontend")

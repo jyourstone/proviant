@@ -34,20 +34,21 @@ async function fetchItems() {
     const params = new URLSearchParams({ storage_type: currentStorage });
     const search = document.getElementById('search').value.trim();
     if (search) params.append('search', search);
-    if (activeFilters.has('out_of_stock')) params.append('out_of_stock', 'true');
-    if (activeFilters.has('low_stock')) params.append('low_stock', 'true');
 
     const res = await fetch(`${API}/items?${params}`);
     let items = await res.json();
 
-    // Client-side filtering for expiring (within 30 days)
-    if (activeFilters.has('expiring')) {
+    // Client-side status filtering (OR logic: show items matching ANY active filter)
+    if (activeFilters.size > 0) {
         const now = new Date();
         items = items.filter(i => {
-            if (!i.expiry_date) return false;
-            const exp = new Date(i.expiry_date);
-            const days = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
-            return days >= 0 && days <= 30;
+            if (activeFilters.has('out_of_stock') && i.quantity === 0) return true;
+            if (activeFilters.has('low_stock') && i.quantity > 0 && i.quantity < 1) return true;
+            if (activeFilters.has('expiring') && i.expiry_date) {
+                const days = Math.ceil((new Date(i.expiry_date) - now) / (1000 * 60 * 60 * 24));
+                if (days >= 0 && days <= 30) return true;
+            }
+            return false;
         });
     }
 
@@ -362,7 +363,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const panel = document.getElementById('filter-panel');
         const btn = document.getElementById('filter-toggle');
         panel.classList.toggle('hidden');
-        btn.textContent = btn.textContent.replace(/^[🔽🔼]/, panel.classList.contains('hidden') ? '🔽' : '🔼');
+        const arrow = panel.classList.contains('hidden') ? '🔽' : '🔼';
+        const match = btn.textContent.match(/Filter(.*)/);
+        btn.textContent = `${arrow} Filter${match ? match[1] : ''}`;
     });
 
     // Status filters (multi-select toggle)
