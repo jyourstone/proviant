@@ -1,18 +1,15 @@
 """Proviant — Hemförrådshantering."""
 
 from contextlib import asynccontextmanager
-from datetime import datetime
 from typing import Optional
 
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import FileResponse
-from sqlalchemy import func
 from sqlalchemy.orm import Session
 
 from .database import get_db, init_db
 from .models import Item, StorageType
-from .schemas import ItemCreate, ItemResponse, ItemSummary, ItemUpdate
+from .schemas import ItemCreate, ItemResponse, ItemSummary, ItemUpdate, QuantityUpdate
 
 
 @asynccontextmanager
@@ -24,7 +21,7 @@ async def lifespan(app: FastAPI):
 app = FastAPI(
     title="Proviant",
     description="Hemförrådshantering — frys, kyl, skafferi",
-    version="0.1.0",
+    version="0.2.0",
     lifespan=lifespan,
 )
 
@@ -37,6 +34,8 @@ def list_items(
     storage_type: Optional[StorageType] = Query(None),
     category: Optional[str] = Query(None),
     search: Optional[str] = Query(None),
+    out_of_stock: Optional[bool] = Query(None),
+    low_stock: Optional[bool] = Query(None),
     db: Session = Depends(get_db),
 ):
     """List all items, optionally filtered."""
@@ -47,6 +46,10 @@ def list_items(
         q = q.filter(Item.category == category)
     if search:
         q = q.filter(Item.name.ilike(f"%{search}%"))
+    if out_of_stock:
+        q = q.filter(Item.quantity == 0)
+    if low_stock:
+        q = q.filter(Item.quantity > 0, Item.quantity < 1)
     return q.order_by(Item.category.asc(), Item.name.asc()).all()
 
 
@@ -69,7 +72,6 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         unit=item.unit,
         category=item.category,
         note=item.note,
-        added_date=item.added_date or datetime.utcnow(),
         expiry_date=item.expiry_date,
     )
     db.add(db_item)
@@ -94,6 +96,18 @@ def update_item(item_id: int, item: ItemUpdate, db: Session = Depends(get_db)):
     return db_item
 
 
+@app.patch("/api/items/{item_id}/quantity", response_model=ItemResponse)
+def update_quantity(item_id: int, data: QuantityUpdate, db: Session = Depends(get_db)):
+    """Quick update of item quantity."""
+    db_item = db.query(Item).filter(Item.id == item_id).first()
+    if not db_item:
+        raise HTTPException(status_code=404, detail="Item not found")
+    db_item.quantity = data.quantity
+    db.commit()
+    db.refresh(db_item)
+    return db_item
+
+
 @app.delete("/api/items/{item_id}", status_code=204)
 def delete_item(item_id: int, db: Session = Depends(get_db)):
     """Delete an item."""
@@ -111,9 +125,11 @@ def get_summary(db: Session = Depends(get_db)):
     for st in StorageType:
         items = db.query(Item).filter(Item.storage_type == st).all()
         categories = sorted(set(i.category for i in items if i.category))
+        oos = sum(1 for i in items if i.quantity == 0)
         results.append(ItemSummary(
             storage_type=st,
             total_items=len(items),
+            out_of_stock=oos,
             categories=categories,
         ))
     return results

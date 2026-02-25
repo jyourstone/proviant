@@ -6,9 +6,7 @@ services:
     ports:
       - "8099:8000"
     volumes:
-      - proviant-data:/app/data
+      - ./appdata:/data
     environment:
-      - DATABASE_URL=sqlite:///./data/proviant.db
+      - DATA_DIR=/data
 
-volumes:
-  proviant-data:

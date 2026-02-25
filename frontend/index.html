@@ -2,7 +2,13 @@
 <html lang="sv">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Proviant">
+    <meta name="theme-color" content="#2563eb">
+    <link rel="manifest" href="/manifest.json">
+    <link rel="apple-touch-icon" href="/icon-192.png">
     <title>Proviant</title>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>">
     <link rel="stylesheet" href="/style.css">
@@ -10,25 +16,32 @@
 <body>
     <header>
         <h1>🧊 Proviant</h1>
-        <p class="subtitle">Hemförrådshantering</p>
     </header>
 
     <nav class="storage-tabs">
-        <button class="tab active" data-storage="freezer">🧊 Frysen</button>
-        <button class="tab" data-storage="fridge">🧊 Kylen</button>
-        <button class="tab" data-storage="pantry">🏪 Skafferiet</button>
+        <button class="tab active" data-storage="freezer">🧊 Frys</button>
+        <button class="tab" data-storage="fridge">🥛 Kyl</button>
+        <button class="tab" data-storage="pantry">🏪 Skafferi</button>
     </nav>
 
     <main>
         <div class="toolbar">
             <input type="text" id="search" placeholder="Sök..." autocomplete="off">
-            <button id="add-btn" class="btn btn-primary">+ Lägg till</button>
+            <button id="add-btn" class="btn btn-primary">+ Ny</button>
         </div>
+
+        <div class="filters" id="filters">
+            <button class="filter-chip active" data-filter="all">Alla</button>
+            <button class="filter-chip" data-filter="out_of_stock">🔴 Slut</button>
+            <button class="filter-chip" data-filter="low_stock">🟡 Nästan slut</button>
+        </div>
+
+        <div id="category-filters" class="filters category-filters"></div>
 
         <div id="items-container">
             <div id="items-list"></div>
             <div id="empty-state" class="empty-state hidden">
-                <p>Tomt här! Lägg till något med knappen ovan.</p>
+                <p>Tomt här! Tryck <strong>+ Ny</strong> för att lägga till.</p>
             </div>
         </div>
 
@@ -45,7 +58,7 @@
             <form id="item-form">
                 <input type="hidden" id="form-id">
                 <div class="form-group">
-                    <label for="form-name">Namn *</label>
+                    <label for="form-name">Namn</label>
                     <input type="text" id="form-name" required autocomplete="off" placeholder="T.ex. Kycklingfilé">
                 </div>
                 <div class="form-row">
@@ -78,15 +91,9 @@
                     <label for="form-note">Anteckning</label>
                     <input type="text" id="form-note" placeholder="Valfri kommentar">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label for="form-added">Tillagt datum</label>
-                        <input type="date" id="form-added">
-                    </div>
-                    <div class="form-group">
-                        <label for="form-expiry">Bäst före</label>
-                        <input type="date" id="form-expiry">
-                    </div>
+                <div class="form-group">
+                    <label for="form-expiry">Bäst före</label>
+                    <input type="date" id="form-expiry">
                 </div>
                 <div class="form-actions">
                     <button type="button" id="form-delete" class="btn btn-danger hidden">Ta bort</button>
