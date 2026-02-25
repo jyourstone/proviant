@@ -171,10 +171,12 @@ async function addToShoppingList(name) {
             body: JSON.stringify({ name }),
         });
         if (!res.ok) throw new Error('ICA-anrop misslyckades');
-        return true;
+        const data = await res.json();
+        if (data.alreadyOnList) return 'exists';
+        return 'added';
     } catch (err) {
         console.error('Shopping list error:', err);
-        return false;
+        return 'error';
     }
 }
 
@@ -253,12 +255,20 @@ function renderItems() {
             const name = btn.dataset.name;
             btn.textContent = '⏳';
             btn.disabled = true;
-            const ok = await addToShoppingList(name);
-            btn.textContent = ok ? '✅' : '❌';
+            const result = await addToShoppingList(name);
+            if (result === 'added') {
+                btn.textContent = '✅';
+            } else if (result === 'exists') {
+                btn.textContent = '📋';
+                btn.title = 'Finns redan på listan';
+            } else {
+                btn.textContent = '❌';
+            }
             setTimeout(() => {
                 btn.textContent = '🛒';
+                btn.title = 'Lägg på inköpslistan';
                 btn.disabled = false;
-            }, 1500);
+            }, 2000);
         });
     });
 
