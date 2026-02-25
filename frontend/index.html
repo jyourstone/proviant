@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no, viewport-fit=cover">
-    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Proviant">
     <meta name="theme-color" content="#2563eb">
@@ -32,13 +32,25 @@
             <button id="add-btn" class="btn btn-primary">+ Ny</button>
         </div>
 
-        <div class="filters" id="filters">
-            <button class="filter-chip active" data-filter="all">Alla</button>
-            <button class="filter-chip" data-filter="out_of_stock">🔴 Slut</button>
-            <button class="filter-chip" data-filter="low_stock">🟡 Nästan slut</button>
+        <div class="filter-bar">
+            <button id="filter-toggle" class="btn btn-filter">🔽 Filter</button>
+            <div id="active-filter-tags" class="active-filter-tags"></div>
         </div>
 
-        <div id="category-filters" class="filters category-filters"></div>
+        <div id="filter-panel" class="filter-panel hidden">
+            <div class="filter-section">
+                <div class="filter-section-label">Status</div>
+                <div class="filters" id="filters">
+                    <button class="filter-chip" data-filter="out_of_stock">🔴 Slut</button>
+                    <button class="filter-chip" data-filter="low_stock">🟡 Nästan slut</button>
+                    <button class="filter-chip" data-filter="expiring">⏰ Utgår snart</button>
+                </div>
+            </div>
+            <div class="filter-section">
+                <div class="filter-section-label">Kategori</div>
+                <div id="category-filters" class="filters category-filters"></div>
+            </div>
+        </div>
 
         <div id="items-container">
             <div id="items-list"></div>

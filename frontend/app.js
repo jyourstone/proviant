@@ -2,8 +2,8 @@
 
 const API = '/api';
 let currentStorage = 'freezer';
-let currentFilter = 'all';
-let currentCategory = null;
+let activeFilters = new Set(); // multi-select: 'out_of_stock', 'low_stock', 'expiring'
+let activeCategories = new Set(); // multi-select categories
 let allItems = [];
 
 // --- Category icons ---
@@ -34,14 +34,32 @@ async function fetchItems() {
     const params = new URLSearchParams({ storage_type: currentStorage });
     const search = document.getElementById('search').value.trim();
     if (search) params.append('search', search);
-    if (currentFilter === 'out_of_stock') params.append('out_of_stock', 'true');
-    if (currentFilter === 'low_stock') params.append('low_stock', 'true');
-    if (currentCategory) params.append('category', currentCategory);
+    if (activeFilters.has('out_of_stock')) params.append('out_of_stock', 'true');
+    if (activeFilters.has('low_stock')) params.append('low_stock', 'true');
 
     const res = await fetch(`${API}/items?${params}`);
-    allItems = await res.json();
+    let items = await res.json();
+
+    // Client-side filtering for expiring (within 30 days)
+    if (activeFilters.has('expiring')) {
+        const now = new Date();
+        items = items.filter(i => {
+            if (!i.expiry_date) return false;
+            const exp = new Date(i.expiry_date);
+            const days = Math.ceil((exp - now) / (1000 * 60 * 60 * 24));
+            return days >= 0 && days <= 30;
+        });
+    }
+
+    // Client-side category filter (multi-select)
+    if (activeCategories.size > 0) {
+        items = items.filter(i => activeCategories.has(i.category || 'Övrigt'));
+    }
+
+    allItems = items;
     renderItems();
     fetchCategoryFilters();
+    updateFilterTags();
 }
 
 async function fetchCategoryFilters() {
@@ -50,18 +68,62 @@ async function fetchCategoryFilters() {
     const container = document.getElementById('category-filters');
 
     if (categories.length === 0) {
-        container.innerHTML = '';
+        container.innerHTML = '<span style="color:var(--text-light);font-size:0.8rem">Inga kategorier ännu</span>';
         return;
     }
 
     container.innerHTML = categories.map(c =>
-        `<button class="filter-chip${currentCategory === c ? ' active' : ''}" data-category="${c}">${getCategoryIcon(c)} ${c}</button>`
+        `<button class="filter-chip${activeCategories.has(c) ? ' active' : ''}" data-category="${c}">${getCategoryIcon(c)} ${c}</button>`
     ).join('');
 
     container.querySelectorAll('.filter-chip').forEach(btn => {
         btn.addEventListener('click', () => {
             const cat = btn.dataset.category;
-            currentCategory = currentCategory === cat ? null : cat;
+            if (activeCategories.has(cat)) {
+                activeCategories.delete(cat);
+            } else {
+                activeCategories.add(cat);
+            }
+            fetchItems();
+        });
+    });
+}
+
+function updateFilterTags() {
+    const container = document.getElementById('active-filter-tags');
+    const filterBtn = document.getElementById('filter-toggle');
+    const total = activeFilters.size + activeCategories.size;
+
+    if (total === 0) {
+        container.innerHTML = '';
+        filterBtn.textContent = '🔽 Filter';
+        return;
+    }
+
+    filterBtn.textContent = `🔽 Filter (${total})`;
+
+    const labels = {
+        out_of_stock: '🔴 Slut',
+        low_stock: '🟡 Nästan slut',
+        expiring: '⏰ Utgår snart',
+    };
+
+    let html = '';
+    for (const f of activeFilters) {
+        html += `<span class="filter-tag" data-type="status" data-value="${f}">${labels[f]} ✕</span>`;
+    }
+    for (const c of activeCategories) {
+        html += `<span class="filter-tag" data-type="category" data-value="${c}">${getCategoryIcon(c)} ${c} ✕</span>`;
+    }
+    container.innerHTML = html;
+
+    container.querySelectorAll('.filter-tag').forEach(tag => {
+        tag.addEventListener('click', () => {
+            if (tag.dataset.type === 'status') {
+                activeFilters.delete(tag.dataset.value);
+            } else {
+                activeCategories.delete(tag.dataset.value);
+            }
             fetchItems();
         });
     });
@@ -132,7 +194,7 @@ function renderItems() {
             const meta = buildMeta(item);
             const qtyDisplay = formatQuantity(item);
             const zeroClass = item.quantity === 0 ? ' zero' : '';
-            const step = getStep(item);
+            const step = 0.5;
 
             html += `
                 <div class="item-card${oosClass}">
@@ -180,12 +242,6 @@ function renderItems() {
             updateQuantity(id, newQty);
         });
     });
-}
-
-function getStep(item) {
-    if (item.unit === 'kg' || item.unit === 'l') return 0.5;
-    if (item.unit === 'g' || item.unit === 'dl') return 1;
-    return 1;
 }
 
 function formatQuantity(item) {
@@ -264,17 +320,30 @@ document.addEventListener('DOMContentLoaded', () => {
             document.querySelector('.tab.active').classList.remove('active');
             tab.classList.add('active');
             currentStorage = tab.dataset.storage;
-            currentCategory = null;
+            activeCategories.clear();
             fetchItems();
         });
     });
 
-    // Status filters
+    // Filter panel toggle
+    document.getElementById('filter-toggle').addEventListener('click', () => {
+        const panel = document.getElementById('filter-panel');
+        const btn = document.getElementById('filter-toggle');
+        panel.classList.toggle('hidden');
+        btn.textContent = btn.textContent.replace(/^[🔽🔼]/, panel.classList.contains('hidden') ? '🔽' : '🔼');
+    });
+
+    // Status filters (multi-select toggle)
     document.querySelectorAll('#filters .filter-chip').forEach(chip => {
         chip.addEventListener('click', () => {
-            document.querySelector('#filters .filter-chip.active').classList.remove('active');
-            chip.classList.add('active');
-            currentFilter = chip.dataset.filter;
+            const filter = chip.dataset.filter;
+            if (activeFilters.has(filter)) {
+                activeFilters.delete(filter);
+                chip.classList.remove('active');
+            } else {
+                activeFilters.add(filter);
+                chip.classList.add('active');
+            }
             fetchItems();
         });
     });
