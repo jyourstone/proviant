@@ -162,6 +162,21 @@ async function deleteItem(id) {
     await fetch(`${API}/items/${id}`, { method: 'DELETE' });
 }
 
+async function addToShoppingList(name) {
+    try {
+        const res = await fetch('https://n8n.dinsten.se/webhook/ica-shopping-list', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name }),
+        });
+        if (!res.ok) throw new Error('ICA-anrop misslyckades');
+        return true;
+    } catch (err) {
+        console.error('Shopping list error:', err);
+        return false;
+    }
+}
+
 // --- Rendering ---
 
 function renderItems() {
@@ -202,6 +217,7 @@ function renderItems() {
                         <div class="item-name">${escapeHtml(item.name)}</div>
                         ${meta ? `<div class="item-meta">${meta}</div>` : ''}
                     </div>
+                    <button class="shop-btn" data-name="${escapeHtml(item.name)}" title="Lägg på inköpslistan">🛒</button>
                     <div class="qty-controls">
                         <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
                         <span class="qty-value${zeroClass}">${qtyDisplay}</span>
@@ -226,6 +242,22 @@ function renderItems() {
             const id = parseInt(el.dataset.id);
             const item = allItems.find(i => i.id === id);
             if (item) openModal(item);
+        });
+    });
+
+    // Event: shopping list button
+    container.querySelectorAll('.shop-btn').forEach(btn => {
+        btn.addEventListener('click', async (e) => {
+            e.stopPropagation();
+            const name = btn.dataset.name;
+            btn.textContent = '⏳';
+            btn.disabled = true;
+            const ok = await addToShoppingList(name);
+            btn.textContent = ok ? '✅' : '❌';
+            setTimeout(() => {
+                btn.textContent = '🛒';
+                btn.disabled = false;
+            }, 1500);
         });
     });
 
