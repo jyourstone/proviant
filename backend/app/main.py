@@ -1,10 +1,13 @@
 """Proviant — Hemförrådshantering."""
 
+import os
 from contextlib import asynccontextmanager
 from typing import Optional
 
+import httpx
 from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.staticfiles import StaticFiles
+from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
 from .database import get_db, init_db
@@ -146,6 +149,32 @@ def list_categories(
         q = q.filter(Item.storage_type == storage_type)
     categories = sorted(set(c[0] for c in q.distinct().all()))
     return categories
+
+
+# --- Shopping list proxy ---
+
+SHOPPING_WEBHOOK_URL = os.environ.get("SHOPPING_WEBHOOK_URL", "")
+SHOPPING_WEBHOOK_KEY = os.environ.get("SHOPPING_WEBHOOK_KEY", "")
+
+
+class ShoppingListRequest(BaseModel):
+    name: str
+
+
+@app.post("/api/shopping-list")
+async def add_to_shopping_list(req: ShoppingListRequest):
+    """Proxy to n8n webhook for ICA shopping list."""
+    if not SHOPPING_WEBHOOK_URL:
+        raise HTTPException(status_code=501, detail="Shopping list not configured")
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(
+            SHOPPING_WEBHOOK_URL,
+            json={"name": req.name},
+            headers={"X-Api-Key": SHOPPING_WEBHOOK_KEY},
+        )
+    if resp.status_code >= 400:
+        raise HTTPException(status_code=502, detail="ICA request failed")
+    return resp.json()
 
 
 # --- Static files (frontend) ---

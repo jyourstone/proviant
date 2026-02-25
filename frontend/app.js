@@ -164,7 +164,7 @@ async function deleteItem(id) {
 
 async function addToShoppingList(name) {
     try {
-        const res = await fetch('https://n8n.dinsten.se/webhook/ica-shopping-list', {
+        const res = await fetch(`${API}/shopping-list`, {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ name }),
