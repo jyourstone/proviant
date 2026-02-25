@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Proviant</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🧊</text></svg>">
+    <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+    <header>
+        <h1>🧊 Proviant</h1>
+        <p class="subtitle">Hemförrådshantering</p>
+    </header>
+
+    <nav class="storage-tabs">
+        <button class="tab active" data-storage="freezer">🧊 Frysen</button>
+        <button class="tab" data-storage="fridge">🧊 Kylen</button>
+        <button class="tab" data-storage="pantry">🏪 Skafferiet</button>
+    </nav>
+
+    <main>
+        <div class="toolbar">
+            <input type="text" id="search" placeholder="Sök..." autocomplete="off">
+            <button id="add-btn" class="btn btn-primary">+ Lägg till</button>
+        </div>
+
+        <div id="items-container">
+            <div id="items-list"></div>
+            <div id="empty-state" class="empty-state hidden">
+                <p>Tomt här! Lägg till något med knappen ovan.</p>
+            </div>
+        </div>
+
+        <div id="summary-bar" class="summary-bar"></div>
+    </main>
+
+    <!-- Add/Edit Modal -->
+    <div id="modal" class="modal hidden">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Lägg till</h2>
+                <button class="modal-close" id="modal-close">&times;</button>
+            </div>
+            <form id="item-form">
+                <input type="hidden" id="form-id">
+                <div class="form-group">
+                    <label for="form-name">Namn *</label>
+                    <input type="text" id="form-name" required autocomplete="off" placeholder="T.ex. Kycklingfilé">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-quantity">Antal</label>
+                        <input type="number" id="form-quantity" value="1" min="0" step="0.5">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-unit">Enhet</label>
+                        <select id="form-unit">
+                            <option value="">—</option>
+                            <option value="st">st</option>
+                            <option value="kg">kg</option>
+                            <option value="g">g</option>
+                            <option value="l">l</option>
+                            <option value="dl">dl</option>
+                            <option value="förp">förp</option>
+                            <option value="påse">påse</option>
+                            <option value="burk">burk</option>
+                            <option value="flaska">flaska</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="form-category">Kategori</label>
+                    <input type="text" id="form-category" list="categories-list" placeholder="T.ex. Kött, Grönsaker, Bröd">
+                    <datalist id="categories-list"></datalist>
+                </div>
+                <div class="form-group">
+                    <label for="form-note">Anteckning</label>
+                    <input type="text" id="form-note" placeholder="Valfri kommentar">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="form-added">Tillagt datum</label>
+                        <input type="date" id="form-added">
+                    </div>
+                    <div class="form-group">
+                        <label for="form-expiry">Bäst före</label>
+                        <input type="date" id="form-expiry">
+                    </div>
+                </div>
+                <div class="form-actions">
+                    <button type="button" id="form-delete" class="btn btn-danger hidden">Ta bort</button>
+                    <div class="form-actions-right">
+                        <button type="button" class="btn btn-secondary" id="form-cancel">Avbryt</button>
+                        <button type="submit" class="btn btn-primary">Spara</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

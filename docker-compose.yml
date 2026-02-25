@@ -1,0 +1,14 @@
+services:
+  proviant:
+    build: .
+    container_name: proviant
+    restart: unless-stopped
+    ports:
+      - "8099:8000"
+    volumes:
+      - proviant-data:/app/data
+    environment:
+      - DATABASE_URL=sqlite:///./data/proviant.db
+
+volumes:
+  proviant-data:
