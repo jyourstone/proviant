@@ -337,6 +337,12 @@ main {
     gap: 0.3rem;
     cursor: pointer;
     touch-action: manipulation;
+    transition: width 0.15s ease, font-size 0.15s ease;
+}
+
+.swipe-action-bg.full-swipe {
+    width: 100%;
+    font-size: 1.4rem;
 }
 
 .swipe-action-bg:active {
