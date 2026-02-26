@@ -365,7 +365,7 @@ main {
     border: none;
     font-size: 1.1rem;
     cursor: pointer;
-    padding: 0.5rem;
+    padding: 0.5rem 0.15rem 0.5rem 0.5rem;
     touch-action: manipulation;
     opacity: 1;
     flex-shrink: 0;
@@ -390,7 +390,7 @@ main {
 .qty-controls {
     display: flex;
     align-items: center;
-    gap: 0;
+    gap: 4px;
     flex-shrink: 0;
 }
 
@@ -428,7 +428,7 @@ main {
 }
 
 .qty-value {
-    min-width: 1.8rem;
+    min-width: 1rem;
     text-align: center;
     font-weight: 700;
     font-size: 0.9rem;
