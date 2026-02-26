@@ -363,7 +363,9 @@ main {
     transition: none;
 }
 
-.item-card.out-of-stock {
+.item-card.out-of-stock .item-info,
+.item-card.out-of-stock .shop-btn,
+.item-card.out-of-stock .qty-controls {
     opacity: 0.5;
 }
 

@@ -393,7 +393,7 @@ function initSwipe(container) {
     container.querySelectorAll('.swipe-container').forEach(sc => {
         const card = sc.querySelector('.item-card');
         let startX, startY, currentX, isSwiping, directionLocked;
-        let lastMoveX, lastMoveTime;
+        let prevMoveX, prevMoveTime, velocity;
 
         card.addEventListener('touchstart', (e) => {
             const touch = e.touches[0];
@@ -402,8 +402,9 @@ function initSwipe(container) {
             currentX = 0;
             isSwiping = false;
             directionLocked = false;
-            lastMoveX = startX;
-            lastMoveTime = Date.now();
+            prevMoveX = startX;
+            prevMoveTime = Date.now();
+            velocity = 0;
             card.classList.add('swiping');
         }, { passive: true });
 
@@ -433,9 +434,13 @@ function initSwipe(container) {
 
             e.preventDefault();
 
-            // Track velocity from recent movement
-            lastMoveX = touch.clientX;
-            lastMoveTime = Date.now();
+            // Track velocity between consecutive move events
+            const now = Date.now();
+            const dt = now - prevMoveTime || 1;
+            const moveDx = prevMoveX - touch.clientX; // positive = leftward
+            velocity = moveDx / dt;
+            prevMoveX = touch.clientX;
+            prevMoveTime = now;
 
             // If card was already open, offset from open position
             const isOpen = openSwipeContainer === sc;
@@ -444,14 +449,9 @@ function initSwipe(container) {
             card.style.transform = `translateX(${currentX}px)`;
         }, { passive: false });
 
-        card.addEventListener('touchend', (e) => {
+        card.addEventListener('touchend', () => {
             card.classList.remove('swiping');
             if (!isSwiping) return;
-
-            // Calculate velocity (px/ms, leftward = positive)
-            const touch = e.changedTouches[0];
-            const dt = Date.now() - lastMoveTime || 1;
-            const velocity = (lastMoveX - touch.clientX) / dt;
 
             // Fast swipe left → instant delete
             if (velocity > VELOCITY_THRESHOLD && currentX < -40) {
