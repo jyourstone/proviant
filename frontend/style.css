@@ -385,19 +385,6 @@ main {
     opacity: 0.8;
 }
 
-/* ICA shopping list badge */
-.ica-badge {
-    display: inline-block;
-    font-size: 0.55rem;
-    font-weight: 700;
-    background: #e02e2e;
-    color: white;
-    padding: 0.1rem 0.35rem;
-    border-radius: 4px;
-    vertical-align: middle;
-    margin-left: 0.3rem;
-    letter-spacing: 0.03em;
-}
 
 /* Quantity controls */
 .qty-controls {

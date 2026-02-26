@@ -222,7 +222,7 @@ function renderItems() {
             html += `
                 <div class="item-card${oosClass}">
                     <div class="item-info" data-id="${item.id}">
-                        <div class="item-name">${escapeHtml(item.name)}${onList ? ' <span class="ica-badge">ICA</span>' : ''}</div>
+                        <div class="item-name">${escapeHtml(item.name)}</div>
                         ${meta ? `<div class="item-meta">${meta}</div>` : ''}
                     </div>
                     <button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" title="${shopTitle}">${shopIcon}</button>
@@ -255,6 +255,10 @@ function renderItems() {
 
     // Event: shopping list button
     container.querySelectorAll('.shop-btn').forEach(btn => {
+        if (btn.classList.contains('on-list')) {
+            btn.disabled = true;
+            return;
+        }
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             const name = btn.dataset.name;
@@ -263,17 +267,23 @@ function renderItems() {
             const result = await addToShoppingList(name);
             if (result === 'added') {
                 btn.textContent = '✅';
+                btn.classList.add('on-list');
+                setTimeout(() => {
+                    btn.textContent = '📋';
+                    btn.title = 'Finns på inköpslistan';
+                }, 2000);
             } else if (result === 'exists') {
                 btn.textContent = '📋';
                 btn.title = 'Finns redan på listan';
+                btn.classList.add('on-list');
             } else {
                 btn.textContent = '❌';
+                setTimeout(() => {
+                    btn.textContent = '🛒';
+                    btn.title = 'Lägg på inköpslistan';
+                    btn.disabled = false;
+                }, 2000);
             }
-            setTimeout(() => {
-                btn.textContent = '🛒';
-                btn.title = 'Lägg på inköpslistan';
-                btn.disabled = false;
-            }, 2000);
         });
     });
 
