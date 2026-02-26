@@ -388,12 +388,15 @@ function swipeDelete(sc) {
 function initSwipe(container) {
     const THRESHOLD = 80;          // px to snap open (slow swipe)
     const REVEAL_WIDTH = 100;      // matches CSS .swipe-action-bg width
-    const VELOCITY_THRESHOLD = 1.2; // px/ms — faster than this = instant delete
+    const VELOCITY_THRESHOLD = 0.6; // px/ms — faster than this = instant delete
+    const FULL_SWIPE_RATIO = 0.5;  // swipe past 50% of card width = instant delete
 
     container.querySelectorAll('.swipe-container').forEach(sc => {
         const card = sc.querySelector('.item-card');
         let startX, startY, currentX, isSwiping, directionLocked;
-        let prevMoveX, prevMoveTime, velocity;
+        let swipeStartTime, swipeStartX;
+        // Rolling window of recent touch positions (last ~80ms)
+        let touchHistory;
 
         card.addEventListener('touchstart', (e) => {
             const touch = e.touches[0];
@@ -402,9 +405,7 @@ function initSwipe(container) {
             currentX = 0;
             isSwiping = false;
             directionLocked = false;
-            prevMoveX = startX;
-            prevMoveTime = Date.now();
-            velocity = 0;
+            touchHistory = [];
             card.classList.add('swiping');
         }, { passive: true });
 
@@ -418,13 +419,13 @@ function initSwipe(container) {
             // Lock direction after 10px of movement
             if (!directionLocked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
                 directionLocked = true;
-                // If more vertical than horizontal, this is a scroll — bail out
                 if (Math.abs(dy) > Math.abs(dx)) {
                     card.classList.remove('swiping');
                     return;
                 }
                 isSwiping = true;
-                // Close any other open swipe
+                swipeStartTime = Date.now();
+                swipeStartX = touch.clientX;
                 if (openSwipeContainer && openSwipeContainer !== sc) {
                     closeOpenSwipe();
                 }
@@ -434,18 +435,18 @@ function initSwipe(container) {
 
             e.preventDefault();
 
-            // Track velocity between consecutive move events
+            // Keep rolling window of recent positions (~80ms)
             const now = Date.now();
-            const dt = now - prevMoveTime || 1;
-            const moveDx = prevMoveX - touch.clientX; // positive = leftward
-            velocity = moveDx / dt;
-            prevMoveX = touch.clientX;
-            prevMoveTime = now;
+            touchHistory.push({ x: touch.clientX, t: now });
+            while (touchHistory.length > 1 && now - touchHistory[0].t > 80) {
+                touchHistory.shift();
+            }
 
-            // If card was already open, offset from open position
+            // Allow swiping further left for fast-delete visual feedback
             const isOpen = openSwipeContainer === sc;
             const base = isOpen ? -REVEAL_WIDTH : 0;
-            currentX = Math.min(0, Math.max(-REVEAL_WIDTH - 30, base + dx));
+            const cardWidth = sc.offsetWidth;
+            currentX = Math.min(0, Math.max(-cardWidth, base + dx));
             card.style.transform = `translateX(${currentX}px)`;
         }, { passive: false });
 
@@ -453,8 +454,26 @@ function initSwipe(container) {
             card.classList.remove('swiping');
             if (!isSwiping) return;
 
-            // Fast swipe left → instant delete
-            if (velocity > VELOCITY_THRESHOLD && currentX < -40) {
+            const cardWidth = sc.offsetWidth;
+
+            // Calculate velocity from rolling window
+            let velocity = 0;
+            if (touchHistory.length >= 2) {
+                const oldest = touchHistory[0];
+                const newest = touchHistory[touchHistory.length - 1];
+                const dt = newest.t - oldest.t || 1;
+                velocity = (oldest.x - newest.x) / dt; // positive = leftward
+            }
+
+            // Also calculate overall swipe velocity as fallback
+            const totalDt = Date.now() - swipeStartTime || 1;
+            const totalVelocity = (swipeStartX - (touchHistory.length ? touchHistory[touchHistory.length - 1].x : swipeStartX)) / totalDt;
+
+            const effectiveVelocity = Math.max(velocity, totalVelocity);
+
+            // Fast swipe or swiped past half the card → instant delete
+            if ((effectiveVelocity > VELOCITY_THRESHOLD && currentX < -40) ||
+                Math.abs(currentX) > cardWidth * FULL_SWIPE_RATIO) {
                 swipeDelete(sc);
                 return;
             }
