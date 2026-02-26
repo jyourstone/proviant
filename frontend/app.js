@@ -12,7 +12,7 @@ const categoryIcons = {
     'grönsaker': '🥦', 'frukt': '🍎', 'bröd': '🍞', 'mejeri': '🧈',
     'glass': '🍦', 'färdigmat': '🍱', 'dryck': '🥤', 'kryddor': '🧂',
     'pasta': '🍝', 'ris': '🍚', 'konserv': '🥫', 'snacks': '🍿',
-    'bakning': '🧁', 'såser': '🫙', 'övrigt': '📦',
+    'matlåd': '🥡', 'bakning': '🧁', 'såser': '🫙', 'övrigt': '📦',
 };
 
 function getCategoryIcon(category) {
@@ -220,16 +220,19 @@ function renderItems() {
             const shopClass = onList ? ' on-list' : '';
 
             html += `
-                <div class="item-card${oosClass}">
-                    <div class="item-info" data-id="${item.id}">
-                        <div class="item-name">${escapeHtml(item.name)}</div>
-                        ${meta ? `<div class="item-meta">${meta}</div>` : ''}
-                    </div>
-                    <button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" title="${shopTitle}">${shopIcon}</button>
-                    <div class="qty-controls">
-                        <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
-                        <span class="qty-value${zeroClass}">${qtyDisplay}</span>
-                        <button class="qty-btn plus" data-id="${item.id}" data-step="${step}">+</button>
+                <div class="swipe-container" data-id="${item.id}">
+                    <div class="swipe-action-bg" data-id="${item.id}">🗑️ Ta bort</div>
+                    <div class="item-card${oosClass}">
+                        <div class="item-info" data-id="${item.id}">
+                            <div class="item-name">${escapeHtml(item.name)}</div>
+                            ${meta ? `<div class="item-meta">${meta}</div>` : ''}
+                        </div>
+                        <button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" title="${shopTitle}">${shopIcon}</button>
+                        <div class="qty-controls">
+                            <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
+                            <span class="qty-value${zeroClass}">${qtyDisplay}</span>
+                            <button class="qty-btn plus" data-id="${item.id}" data-step="${step}">+</button>
+                        </div>
                     </div>
                 </div>
             `;
@@ -307,6 +310,9 @@ function renderItems() {
             updateQuantity(id, newQty);
         });
     });
+
+    // Swipe-to-delete
+    initSwipe(container);
 }
 
 function formatQuantity(item) {
@@ -338,6 +344,146 @@ function escapeHtml(text) {
     const div = document.createElement('div');
     div.textContent = text;
     return div.innerHTML;
+}
+
+// --- Swipe-to-delete ---
+
+let openSwipeContainer = null;
+
+function closeOpenSwipe() {
+    if (openSwipeContainer) {
+        const card = openSwipeContainer.querySelector('.item-card');
+        if (card) {
+            card.style.transform = '';
+            card.classList.remove('swiping');
+        }
+        openSwipeContainer = null;
+    }
+}
+
+function swipeDelete(sc) {
+    const card = sc.querySelector('.item-card');
+    const id = parseInt(sc.dataset.id);
+    if (openSwipeContainer === sc) openSwipeContainer = null;
+
+    // Slide card fully off-screen, then collapse
+    card.classList.remove('swiping');
+    card.style.transition = 'transform 0.2s ease';
+    card.style.transform = `translateX(-${sc.offsetWidth}px)`;
+
+    setTimeout(() => {
+        sc.style.transition = 'max-height 0.2s ease, opacity 0.2s ease';
+        sc.style.maxHeight = sc.offsetHeight + 'px';
+        sc.style.overflow = 'hidden';
+        requestAnimationFrame(() => {
+            sc.style.maxHeight = '0';
+            sc.style.opacity = '0';
+        });
+    }, 180);
+
+    deleteItem(id);
+    setTimeout(() => fetchItems(), 400);
+}
+
+function initSwipe(container) {
+    const THRESHOLD = 80;          // px to snap open (slow swipe)
+    const REVEAL_WIDTH = 100;      // matches CSS .swipe-action-bg width
+    const VELOCITY_THRESHOLD = 1.2; // px/ms — faster than this = instant delete
+
+    container.querySelectorAll('.swipe-container').forEach(sc => {
+        const card = sc.querySelector('.item-card');
+        let startX, startY, currentX, isSwiping, directionLocked;
+        let lastMoveX, lastMoveTime;
+
+        card.addEventListener('touchstart', (e) => {
+            const touch = e.touches[0];
+            startX = touch.clientX;
+            startY = touch.clientY;
+            currentX = 0;
+            isSwiping = false;
+            directionLocked = false;
+            lastMoveX = startX;
+            lastMoveTime = Date.now();
+            card.classList.add('swiping');
+        }, { passive: true });
+
+        card.addEventListener('touchmove', (e) => {
+            if (directionLocked && !isSwiping) return;
+
+            const touch = e.touches[0];
+            const dx = touch.clientX - startX;
+            const dy = touch.clientY - startY;
+
+            // Lock direction after 10px of movement
+            if (!directionLocked && (Math.abs(dx) > 10 || Math.abs(dy) > 10)) {
+                directionLocked = true;
+                // If more vertical than horizontal, this is a scroll — bail out
+                if (Math.abs(dy) > Math.abs(dx)) {
+                    card.classList.remove('swiping');
+                    return;
+                }
+                isSwiping = true;
+                // Close any other open swipe
+                if (openSwipeContainer && openSwipeContainer !== sc) {
+                    closeOpenSwipe();
+                }
+            }
+
+            if (!isSwiping) return;
+
+            e.preventDefault();
+
+            // Track velocity from recent movement
+            lastMoveX = touch.clientX;
+            lastMoveTime = Date.now();
+
+            // If card was already open, offset from open position
+            const isOpen = openSwipeContainer === sc;
+            const base = isOpen ? -REVEAL_WIDTH : 0;
+            currentX = Math.min(0, Math.max(-REVEAL_WIDTH - 30, base + dx));
+            card.style.transform = `translateX(${currentX}px)`;
+        }, { passive: false });
+
+        card.addEventListener('touchend', (e) => {
+            card.classList.remove('swiping');
+            if (!isSwiping) return;
+
+            // Calculate velocity (px/ms, leftward = positive)
+            const touch = e.changedTouches[0];
+            const dt = Date.now() - lastMoveTime || 1;
+            const velocity = (lastMoveX - touch.clientX) / dt;
+
+            // Fast swipe left → instant delete
+            if (velocity > VELOCITY_THRESHOLD && currentX < -40) {
+                swipeDelete(sc);
+                return;
+            }
+
+            // Slow swipe — snap open or closed
+            if (currentX < -THRESHOLD) {
+                card.style.transform = `translateX(-${REVEAL_WIDTH}px)`;
+                openSwipeContainer = sc;
+            } else {
+                card.style.transform = '';
+                if (openSwipeContainer === sc) openSwipeContainer = null;
+            }
+        }, { passive: true });
+    });
+
+    // Delete action buttons (tap after slow reveal)
+    container.querySelectorAll('.swipe-action-bg').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const sc = btn.closest('.swipe-container');
+            swipeDelete(sc);
+        });
+    });
+
+    // Close open swipe on tap elsewhere
+    document.addEventListener('touchstart', (e) => {
+        if (openSwipeContainer && !openSwipeContainer.contains(e.target)) {
+            closeOpenSwipe();
+        }
+    }, { passive: true });
 }
 
 // --- Modal ---

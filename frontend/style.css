@@ -314,6 +314,35 @@ main {
     padding-top: 0.25rem;
 }
 
+/* Swipe container */
+.swipe-container {
+    position: relative;
+    overflow: hidden;
+    border-radius: var(--radius);
+}
+
+.swipe-action-bg {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100px;
+    background: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    gap: 0.3rem;
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.swipe-action-bg:active {
+    background: var(--danger-hover);
+}
+
 /* Item card */
 .item-card {
     display: flex;
@@ -323,9 +352,15 @@ main {
     background: var(--card-bg);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
-    transition: all 0.15s;
-    touch-action: manipulation;
+    touch-action: pan-y;
     min-height: 52px;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.25s ease;
+}
+
+.item-card.swiping {
+    transition: none;
 }
 
 .item-card.out-of-stock {
