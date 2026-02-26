@@ -328,27 +328,46 @@ main {
     bottom: 0;
     width: 100%;
     background: var(--danger);
+    cursor: pointer;
+    touch-action: manipulation;
+}
+
+.swipe-action-bg:active {
+    background: var(--danger-hover);
+}
+
+.swipe-action-content {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 100px;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
     color: white;
-    cursor: pointer;
-    touch-action: manipulation;
-    overflow: hidden;
 }
 
 .swipe-action-icon {
-    font-size: 1.3rem;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    background: rgba(0, 0, 0, 0.15);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
     line-height: 1;
     transition: transform 0.15s ease;
 }
 
 .swipe-action-label {
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 700;
-    margin-top: 0.15rem;
+    margin-top: 0.2rem;
     transition: opacity 0.15s ease;
+    white-space: nowrap;
 }
 
 .swipe-action-bg.full-swipe .swipe-action-icon {
@@ -357,10 +376,6 @@ main {
 
 .swipe-action-bg.full-swipe .swipe-action-label {
     opacity: 0;
-}
-
-.swipe-action-bg:active {
-    background: var(--danger-hover);
 }
 
 /* Item card */

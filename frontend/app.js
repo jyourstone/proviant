@@ -221,7 +221,12 @@ function renderItems() {
 
             html += `
                 <div class="swipe-container" data-id="${item.id}">
-                    <div class="swipe-action-bg" data-id="${item.id}"><div class="swipe-action-icon">🗑️</div><div class="swipe-action-label">Släng</div></div>
+                    <div class="swipe-action-bg" data-id="${item.id}">
+                        <div class="swipe-action-content">
+                            <div class="swipe-action-icon">🗑️</div>
+                            <div class="swipe-action-label">Släng</div>
+                        </div>
+                    </div>
                     <div class="item-card${oosClass}">
                         <div class="item-info" data-id="${item.id}">
                             <div class="item-name">${escapeHtml(item.name)}</div>
@@ -353,15 +358,14 @@ let openSwipeContainer = null;
 function closeOpenSwipe() {
     if (openSwipeContainer) {
         const card = openSwipeContainer.querySelector('.item-card');
-        const icon = openSwipeContainer.querySelector('.swipe-action-icon');
+        const content = openSwipeContainer.querySelector('.swipe-action-content');
         if (card) {
             card.style.transform = '';
             card.classList.remove('swiping');
         }
-        if (icon) {
-            icon.style.position = '';
-            icon.style.left = '';
-            icon.style.right = '';
+        if (content) {
+            content.style.right = '';
+            content.style.left = '';
         }
         openSwipeContainer = null;
     }
@@ -404,7 +408,7 @@ function initSwipe(container) {
     container.querySelectorAll('.swipe-container').forEach(sc => {
         const card = sc.querySelector('.item-card');
         const actionBg = sc.querySelector('.swipe-action-bg');
-        const actionIcon = actionBg.querySelector('.swipe-action-icon');
+        const actionContent = actionBg.querySelector('.swipe-action-content');
         let startX, startY, currentX, isSwiping, directionLocked;
         let pastDeleteThreshold;
 
@@ -461,23 +465,17 @@ function initSwipe(container) {
                 actionBg.classList.remove('full-swipe');
             }
 
-            // Position icon: centered in revealed area, or follow card edge when past threshold
+            // When past threshold, move content to follow card edge
             const revealed = Math.abs(currentX);
             if (pastDeleteThreshold) {
-                // Icon follows the card edge with some padding
-                const iconLeft = revealed - 30;
-                actionIcon.style.position = 'absolute';
-                actionIcon.style.left = iconLeft + 'px';
-                actionIcon.style.right = 'auto';
-            } else if (revealed > REVEAL_WIDTH) {
-                // Between reveal width and threshold: keep icon centered in revealed area
-                actionIcon.style.position = 'absolute';
-                actionIcon.style.left = (revealed / 2 - 10) + 'px';
-                actionIcon.style.right = 'auto';
+                // Content follows card edge (50px padding from edge)
+                const leftPos = cardWidth - revealed + 20;
+                actionContent.style.right = 'auto';
+                actionContent.style.left = leftPos + 'px';
             } else {
-                actionIcon.style.position = '';
-                actionIcon.style.left = '';
-                actionIcon.style.right = '';
+                // Default: anchored to right
+                actionContent.style.right = '';
+                actionContent.style.left = '';
             }
         }, { passive: false });
 
@@ -491,11 +489,10 @@ function initSwipe(container) {
                 return;
             }
 
-            // Reset icon position
+            // Reset
             actionBg.classList.remove('full-swipe');
-            actionIcon.style.position = '';
-            actionIcon.style.left = '';
-            actionIcon.style.right = '';
+            actionContent.style.right = '';
+            actionContent.style.left = '';
 
             // Slow swipe — snap open or closed
             if (currentX < -THRESHOLD) {

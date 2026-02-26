@@ -14,7 +14,7 @@ Will primarily be used on an iPhone, take that into account when building the fr
 
 ```
 backend/app/
-  main.py       # All FastAPI routes
+  main.py       # All FastAPI routes + text normalization/matching
   models.py     # SQLAlchemy ORM (single `items` table)
   schemas.py    # Pydantic request/response schemas
   database.py   # Session management, init_db()
@@ -23,6 +23,8 @@ frontend/
   style.css     # Mobile-first styles with CSS variables
   index.html
   manifest.json # PWA config
+  images/       # Icons, favicon, logo assets
+.env.example    # Template for environment variables
 ```
 
 ## Development
