@@ -2,7 +2,7 @@
 
 from enum import Enum as PyEnum
 
-from sqlalchemy import Column, DateTime, Float, Integer, String, Enum, Text, func
+from sqlalchemy import Boolean, Column, DateTime, Float, Integer, String, Enum, Text, func
 from sqlalchemy.orm import DeclarativeBase
 
 
@@ -29,6 +29,7 @@ class Item(Base):
     category = Column(String(100), nullable=True)
     note = Column(Text, nullable=True)
     expiry_date = Column(DateTime, nullable=True)
+    on_shopping_list = Column(Boolean, nullable=False, default=False, server_default="0")
     created_at = Column(DateTime, nullable=False, default=func.now())
     updated_at = Column(DateTime, nullable=False, default=func.now(), onupdate=func.now())
 

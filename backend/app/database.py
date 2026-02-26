@@ -16,9 +16,23 @@ SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
 
 def init_db():
-    """Create all tables."""
+    """Create all tables and run lightweight migrations."""
     os.makedirs(DATA_DIR, exist_ok=True)
     Base.metadata.create_all(bind=engine)
+    _migrate(engine)
+
+
+def _migrate(eng):
+    """Add missing columns to existing tables (idempotent)."""
+    from sqlalchemy import inspect, text
+    insp = inspect(eng)
+    if "items" in insp.get_table_names():
+        cols = {c["name"] for c in insp.get_columns("items")}
+        with eng.begin() as conn:
+            if "on_shopping_list" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE items ADD COLUMN on_shopping_list BOOLEAN NOT NULL DEFAULT 0"
+                ))
 
 
 def get_db():

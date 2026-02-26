@@ -45,6 +45,7 @@ class ItemResponse(BaseModel):
     category: Optional[str]
     note: Optional[str]
     expiry_date: Optional[datetime]
+    on_shopping_list: bool = False
     created_at: datetime
     updated_at: datetime
 

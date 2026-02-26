@@ -6,7 +6,7 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
-from fastapi import Depends, FastAPI, HTTPException, Query
+from fastapi import Depends, FastAPI, Header, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
@@ -163,9 +163,14 @@ class ShoppingListRequest(BaseModel):
     name: str
 
 
+class IcaSyncRequest(BaseModel):
+    """Payload from n8n with current ICA shopping list items."""
+    items: list[str]  # List of item names currently on ICA list (not struck through)
+
+
 @app.post("/api/shopping-list")
-async def add_to_shopping_list(req: ShoppingListRequest):
-    """Proxy to n8n webhook for ICA shopping list."""
+async def add_to_shopping_list(req: ShoppingListRequest, db: Session = Depends(get_db)):
+    """Proxy to n8n webhook for ICA shopping list, and mark item locally."""
     if not SHOPPING_WEBHOOK_URL:
         raise HTTPException(status_code=501, detail="Shopping list not configured")
     async with httpx.AsyncClient(timeout=15) as client:
@@ -176,7 +181,47 @@ async def add_to_shopping_list(req: ShoppingListRequest):
         )
     if resp.status_code >= 400:
         raise HTTPException(status_code=502, detail="ICA request failed")
+
+    # Mark matching Proviant items as on_shopping_list
+    name_lower = req.name.strip().lower()
+    matches = db.query(Item).filter(Item.name.ilike(f"%{name_lower}%")).all()
+    for item in matches:
+        item.on_shopping_list = True
+    db.commit()
+
     return resp.json()
+
+
+SYNC_API_KEY = os.environ.get("SYNC_API_KEY", SHOPPING_WEBHOOK_KEY)
+
+
+@app.post("/api/ica-sync")
+def ica_sync(
+    req: IcaSyncRequest,
+    db: Session = Depends(get_db),
+    x_api_key: Optional[str] = Header(None),
+):
+    """Receive the current ICA shopping list from n8n and sync flags.
+
+    Items whose name matches (case-insensitive) an ICA list entry get
+    on_shopping_list=True; all others are reset to False.
+    """
+    if not SYNC_API_KEY or x_api_key != SYNC_API_KEY:
+        raise HTTPException(status_code=401, detail="Unauthorized")
+
+    ica_names = {name.strip().lower() for name in req.items}
+
+    all_items = db.query(Item).all()
+    matched = 0
+    for item in all_items:
+        should_be_on = item.name.strip().lower() in ica_names
+        if item.on_shopping_list != should_be_on:
+            item.on_shopping_list = should_be_on
+            if should_be_on:
+                matched += 1
+
+    db.commit()
+    return {"synced": True, "ica_items": len(ica_names), "matched": matched}
 
 
 # --- Static files (frontend) ---

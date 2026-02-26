@@ -214,13 +214,18 @@ function renderItems() {
             const zeroClass = item.quantity === 0 ? ' zero' : '';
             const step = 0.5;
 
+            const onList = item.on_shopping_list;
+            const shopIcon = onList ? '📋' : '🛒';
+            const shopTitle = onList ? 'Finns på inköpslistan' : 'Lägg på inköpslistan';
+            const shopClass = onList ? ' on-list' : '';
+
             html += `
                 <div class="item-card${oosClass}">
                     <div class="item-info" data-id="${item.id}">
-                        <div class="item-name">${escapeHtml(item.name)}</div>
+                        <div class="item-name">${escapeHtml(item.name)}${onList ? ' <span class="ica-badge">ICA</span>' : ''}</div>
                         ${meta ? `<div class="item-meta">${meta}</div>` : ''}
                     </div>
-                    <button class="shop-btn" data-name="${escapeHtml(item.name)}" title="Lägg på inköpslistan">🛒</button>
+                    <button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" title="${shopTitle}">${shopIcon}</button>
                     <div class="qty-controls">
                         <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
                         <span class="qty-value${zeroClass}">${qtyDisplay}</span>
