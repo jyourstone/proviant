@@ -359,6 +359,7 @@ function closeOpenSwipe() {
     if (openSwipeContainer) {
         const card = openSwipeContainer.querySelector('.item-card');
         const content = openSwipeContainer.querySelector('.swipe-action-content');
+        const icon = openSwipeContainer.querySelector('.swipe-action-icon');
         if (card) {
             card.style.transform = '';
             card.classList.remove('swiping');
@@ -367,6 +368,7 @@ function closeOpenSwipe() {
             content.style.right = '';
             content.style.left = '';
         }
+        if (icon) icon.style.transform = '';
         openSwipeContainer = null;
     }
 }
@@ -409,6 +411,7 @@ function initSwipe(container) {
         const card = sc.querySelector('.item-card');
         const actionBg = sc.querySelector('.swipe-action-bg');
         const actionContent = actionBg.querySelector('.swipe-action-content');
+        const actionIcon = actionBg.querySelector('.swipe-action-icon');
         let startX, startY, currentX, isSwiping, directionLocked;
         let pastDeleteThreshold;
 
@@ -454,8 +457,14 @@ function initSwipe(container) {
             currentX = Math.min(0, Math.max(-cardWidth, base + dx));
             card.style.transform = `translateX(${currentX}px)`;
 
+            // Gradually scale icon based on drag distance
+            const revealed = Math.abs(currentX);
+            const scaleProgress = Math.min(1, Math.max(0, (revealed - REVEAL_WIDTH) / (cardWidth * FULL_SWIPE_RATIO - REVEAL_WIDTH)));
+            const scale = 1 + scaleProgress * 0.4; // 1.0 → 1.4
+            actionIcon.style.transform = `scale(${scale})`;
+
             // Check if past delete threshold
-            const isPast = Math.abs(currentX) > cardWidth * FULL_SWIPE_RATIO;
+            const isPast = revealed > cardWidth * FULL_SWIPE_RATIO;
             if (isPast && !pastDeleteThreshold) {
                 pastDeleteThreshold = true;
                 actionBg.classList.add('full-swipe');
@@ -466,14 +475,11 @@ function initSwipe(container) {
             }
 
             // When past threshold, move content to follow card edge
-            const revealed = Math.abs(currentX);
             if (pastDeleteThreshold) {
-                // Content follows card edge (50px padding from edge)
                 const leftPos = cardWidth - revealed + 20;
                 actionContent.style.right = 'auto';
                 actionContent.style.left = leftPos + 'px';
             } else {
-                // Default: anchored to right
                 actionContent.style.right = '';
                 actionContent.style.left = '';
             }
@@ -493,6 +499,7 @@ function initSwipe(container) {
             actionBg.classList.remove('full-swipe');
             actionContent.style.right = '';
             actionContent.style.left = '';
+            actionIcon.style.transform = '';
 
             // Slow swipe — snap open or closed
             if (currentX < -THRESHOLD) {
