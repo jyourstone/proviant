@@ -221,12 +221,7 @@ function renderItems() {
 
             html += `
                 <div class="swipe-container" data-id="${item.id}">
-                    <div class="swipe-action-bg" data-id="${item.id}">
-                        <div class="swipe-action-content">
-                            <div class="swipe-action-icon">🗑️</div>
-                            <div class="swipe-action-label">Släng</div>
-                        </div>
-                    </div>
+                    <div class="swipe-action-bg" data-id="${item.id}">🗑️ Ta bort</div>
                     <div class="item-card${oosClass}">
                         <div class="item-info" data-id="${item.id}">
                             <div class="item-name">${escapeHtml(item.name)}</div>
@@ -358,17 +353,11 @@ let openSwipeContainer = null;
 function closeOpenSwipe() {
     if (openSwipeContainer) {
         const card = openSwipeContainer.querySelector('.item-card');
-        const content = openSwipeContainer.querySelector('.swipe-action-content');
-        const icon = openSwipeContainer.querySelector('.swipe-action-icon');
         if (card) {
             card.style.transform = '';
             card.classList.remove('swiping');
         }
-        if (content) {
-            content.style.right = '';
-            content.style.left = '';
-        }
-        if (icon) icon.style.transform = '';
+        openSwipeContainer.classList.remove('swiping');
         openSwipeContainer = null;
     }
 }
@@ -410,8 +399,6 @@ function initSwipe(container) {
     container.querySelectorAll('.swipe-container').forEach(sc => {
         const card = sc.querySelector('.item-card');
         const actionBg = sc.querySelector('.swipe-action-bg');
-        const actionContent = actionBg.querySelector('.swipe-action-content');
-        const actionIcon = actionBg.querySelector('.swipe-action-icon');
         let startX, startY, currentX, isSwiping, directionLocked;
         let pastDeleteThreshold;
 
@@ -441,6 +428,7 @@ function initSwipe(container) {
                     return;
                 }
                 isSwiping = true;
+                sc.classList.add('swiping');
                 if (openSwipeContainer && openSwipeContainer !== sc) {
                     closeOpenSwipe();
                 }
@@ -457,31 +445,17 @@ function initSwipe(container) {
             currentX = Math.min(0, Math.max(-cardWidth, base + dx));
             card.style.transform = `translateX(${currentX}px)`;
 
-            // Gradually scale icon based on drag distance
-            const revealed = Math.abs(currentX);
-            const scaleProgress = Math.min(1, Math.max(0, (revealed - REVEAL_WIDTH) / (cardWidth * FULL_SWIPE_RATIO - REVEAL_WIDTH)));
-            const scale = 1 + scaleProgress * 0.4; // 1.0 → 1.4
-            actionIcon.style.transform = `scale(${scale})`;
-
             // Check if past delete threshold
-            const isPast = revealed > cardWidth * FULL_SWIPE_RATIO;
+            const isPast = Math.abs(currentX) > cardWidth * FULL_SWIPE_RATIO;
             if (isPast && !pastDeleteThreshold) {
+                // Just crossed the threshold — expand bg and haptic
                 pastDeleteThreshold = true;
                 actionBg.classList.add('full-swipe');
                 triggerHaptic();
             } else if (!isPast && pastDeleteThreshold) {
+                // Dragged back below threshold
                 pastDeleteThreshold = false;
                 actionBg.classList.remove('full-swipe');
-            }
-
-            // When past threshold, move content to follow card edge
-            if (pastDeleteThreshold) {
-                const leftPos = cardWidth - revealed + 20;
-                actionContent.style.right = 'auto';
-                actionContent.style.left = leftPos + 'px';
-            } else {
-                actionContent.style.right = '';
-                actionContent.style.left = '';
             }
         }, { passive: false });
 
@@ -495,18 +469,14 @@ function initSwipe(container) {
                 return;
             }
 
-            // Reset
-            actionBg.classList.remove('full-swipe');
-            actionContent.style.right = '';
-            actionContent.style.left = '';
-            actionIcon.style.transform = '';
-
             // Slow swipe — snap open or closed
+            actionBg.classList.remove('full-swipe');
             if (currentX < -THRESHOLD) {
                 card.style.transform = `translateX(-${REVEAL_WIDTH}px)`;
                 openSwipeContainer = sc;
             } else {
                 card.style.transform = '';
+                sc.classList.remove('swiping');
                 if (openSwipeContainer === sc) openSwipeContainer = null;
             }
         }, { passive: true });

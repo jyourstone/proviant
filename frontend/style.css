@@ -326,61 +326,32 @@ main {
     top: 0;
     right: 0;
     bottom: 0;
-    width: 100%;
-    background: var(--card-bg);
+    width: 100px;
+    background: var(--danger);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: white;
+    font-size: 0.85rem;
+    font-weight: 700;
+    gap: 0.3rem;
     cursor: pointer;
     touch-action: manipulation;
-    transition: background 0.2s ease;
+    transition: width 0.15s ease, font-size 0.15s ease;
+    visibility: hidden;
+}
+
+.swipe-container.swiping .swipe-action-bg {
+    visibility: visible;
 }
 
 .swipe-action-bg.full-swipe {
-    background: var(--danger);
+    width: 100%;
+    font-size: 1.4rem;
 }
 
 .swipe-action-bg:active {
     background: var(--danger-hover);
-}
-
-.swipe-action-content {
-    position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    width: 100px;
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    justify-content: center;
-}
-
-.swipe-action-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    background: var(--danger);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-size: 1.1rem;
-    line-height: 1;
-    transition: background 0.2s ease;
-}
-
-.swipe-action-label {
-    font-size: 0.6rem;
-    font-weight: 700;
-    color: var(--danger);
-    margin-top: 0.2rem;
-    transition: opacity 0.15s ease, color 0.2s ease;
-    white-space: nowrap;
-}
-
-.swipe-action-bg.full-swipe .swipe-action-icon {
-    background: rgba(255, 255, 255, 0.25);
-}
-
-.swipe-action-bg.full-swipe .swipe-action-label {
-    opacity: 0;
 }
 
 /* Item card */
