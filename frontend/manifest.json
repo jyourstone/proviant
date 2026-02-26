@@ -4,7 +4,7 @@
     "description": "Hemförrådshantering — frys, kyl, skafferi",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#607E8C",
+    "background_color": "#f9f8f3",
     "theme_color": "#607E8C",
     "orientation": "portrait",
     "icons": [
