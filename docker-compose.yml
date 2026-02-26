@@ -9,6 +9,6 @@ services:
       - ./appdata:/data
     environment:
       - DATA_DIR=/data
-      - SHOPPING_WEBHOOK_URL=https://n8n.dinsten.se/webhook/ica-shopping-list
-      - SHOPPING_WEBHOOK_KEY=c25SxrKL6CIDsZHQLPuDA4S17n9IILMiCYGBTgElFXU
+      - SHOPPING_WEBHOOK_URL=${SHOPPING_WEBHOOK_URL}
+      - SHOPPING_WEBHOOK_KEY=${SHOPPING_WEBHOOK_KEY}
 
