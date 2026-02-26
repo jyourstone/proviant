@@ -4,24 +4,24 @@
     "description": "Hemförrådshantering — frys, kyl, skafferi",
     "start_url": "/",
     "display": "standalone",
-    "background_color": "#f8fafc",
-    "theme_color": "#2563eb",
+    "background_color": "#607E8C",
+    "theme_color": "#607E8C",
     "orientation": "portrait",
     "icons": [
         {
-            "src": "/icon-192.png",
+            "src": "/images/icon-192.png",
             "sizes": "192x192",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon-512.png",
+            "src": "/images/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "any"
         },
         {
-            "src": "/icon-512.png",
+            "src": "/images/icon-512.png",
             "sizes": "512x512",
             "type": "image/png",
             "purpose": "maskable"
