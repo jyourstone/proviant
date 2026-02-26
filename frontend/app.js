@@ -261,7 +261,14 @@ function renderItems() {
         }
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
-            const name = btn.dataset.name;
+            let name = btn.dataset.name;
+            // Append "fryst" for freezer items unless already present
+            if (currentStorage === 'freezer') {
+                const lower = name.toLowerCase();
+                if (!lower.includes('fryst') && !lower.includes('frysta')) {
+                    name = name + ' fryst';
+                }
+            }
             btn.textContent = '⏳';
             btn.disabled = true;
             const result = await addToShoppingList(name);

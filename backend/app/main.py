@@ -1,6 +1,8 @@
 """Proviant — Hemförrådshantering."""
 
 import os
+import re
+import unicodedata
 from contextlib import asynccontextmanager
 from pathlib import Path
 from typing import Optional
@@ -153,6 +155,37 @@ def list_categories(
     return categories
 
 
+# --- Text normalisation helpers ---
+
+
+def normalize_text(text: str) -> str:
+    """Lowercase, strip whitespace, and remove accents/diacritics."""
+    text = text.strip().lower()
+    decomposed = unicodedata.normalize("NFKD", text)
+    return "".join(c for c in decomposed if not unicodedata.category(c).startswith("M"))
+
+
+def word_boundary_match(needle: str, haystack: str) -> bool:
+    """True if *needle* appears as whole word(s) inside *haystack*.
+
+    Both strings must already be normalised.
+    """
+    return bool(re.search(r"\b" + re.escape(needle) + r"\b", haystack))
+
+
+def items_match(name_a: str, name_b: str) -> bool:
+    """Bidirectional word-boundary match after normalisation.
+
+    Returns True when either name contains the other as whole words.
+    E.g. "köttbullar" ↔ "köttbullar fryst" both match.
+    """
+    a = normalize_text(name_a)
+    b = normalize_text(name_b)
+    if a == b:
+        return True
+    return word_boundary_match(a, b) or word_boundary_match(b, a)
+
+
 # --- Shopping list proxy ---
 
 SHOPPING_WEBHOOK_URL = os.environ.get("SHOPPING_WEBHOOK_URL", "")
@@ -183,10 +216,10 @@ async def add_to_shopping_list(req: ShoppingListRequest, db: Session = Depends(g
         raise HTTPException(status_code=502, detail="ICA request failed")
 
     # Mark matching Proviant items as on_shopping_list
-    name_lower = req.name.strip().lower()
-    matches = db.query(Item).filter(Item.name.ilike(f"%{name_lower}%")).all()
-    for item in matches:
-        item.on_shopping_list = True
+    all_items = db.query(Item).all()
+    for item in all_items:
+        if items_match(item.name, req.name):
+            item.on_shopping_list = True
     db.commit()
 
     return resp.json()
@@ -203,18 +236,18 @@ def ica_sync(
 ):
     """Receive the current ICA shopping list from n8n and sync flags.
 
-    Items whose name matches (case-insensitive) an ICA list entry get
-    on_shopping_list=True; all others are reset to False.
+    Uses normalised word-boundary matching (accent- and case-insensitive)
+    so "Köttbullar" in Proviant matches "Köttbullar fryst" in ICA.
     """
     if not SYNC_API_KEY or x_api_key != SYNC_API_KEY:
         raise HTTPException(status_code=401, detail="Unauthorized")
 
-    ica_names = {name.strip().lower() for name in req.items}
+    ica_names = [name.strip() for name in req.items]
 
     all_items = db.query(Item).all()
     matched = 0
     for item in all_items:
-        should_be_on = item.name.strip().lower() in ica_names
+        should_be_on = any(items_match(item.name, ica) for ica in ica_names)
         if item.on_shopping_list != should_be_on:
             item.on_shopping_list = should_be_on
             if should_be_on:
