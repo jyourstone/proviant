@@ -4,8 +4,8 @@
 :root {
     --primary: #607E8C;
     --primary-hover: #4F6A78;
-    --danger: #dc2626;
-    --danger-hover: #b91c1c;
+    --danger: #c45050;
+    --danger-hover: #a84343;
     --warning: #f59e0b;
     --bg: #f9f8f3;
     --card-bg: #fdfcf8;
@@ -70,13 +70,13 @@ header h1 {
     gap: 0.4rem;
     padding: 0.75rem 0.75rem 0.5rem;
     position: sticky;
-    top: 0;
+    top: var(--safe-top);
     background: var(--bg);
     z-index: 10;
 }
 
 .tab {
-    padding: 0.5rem 1rem;
+    padding: 0.6rem 1.1rem;
     border: 2px solid var(--border);
     border-radius: 999px;
     background: var(--card-bg);
@@ -85,6 +85,7 @@ header h1 {
     font-weight: 600;
     transition: all 0.2s;
     color: var(--text-muted);
+    min-height: 44px;
 }
 
 .tab:hover {
@@ -121,6 +122,9 @@ main {
     outline: none;
     transition: border-color 0.2s;
     background: var(--card-bg);
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 44px;
 }
 
 .toolbar input:focus {
@@ -138,6 +142,7 @@ main {
     transition: all 0.15s;
     white-space: nowrap;
     touch-action: manipulation;
+    min-height: 44px;
 }
 
 .btn-primary {
@@ -189,6 +194,7 @@ main {
     transition: all 0.15s;
     touch-action: manipulation;
     white-space: nowrap;
+    min-height: 36px;
 }
 
 .btn-filter:active {
@@ -204,16 +210,17 @@ main {
 .filter-tag {
     display: inline-flex;
     align-items: center;
-    padding: 0.2rem 0.5rem;
+    padding: 0.35rem 0.6rem;
     border-radius: 999px;
     background: var(--primary);
     color: white;
-    font-size: 0.7rem;
+    font-size: 0.75rem;
     font-weight: 600;
     cursor: pointer;
     white-space: nowrap;
     touch-action: manipulation;
     transition: opacity 0.15s;
+    min-height: 32px;
 }
 
 .filter-tag:active {
@@ -261,7 +268,7 @@ main {
 }
 
 .filter-chip {
-    padding: 0.35rem 0.75rem;
+    padding: 0.45rem 0.85rem;
     border: 1.5px solid var(--border);
     border-radius: 999px;
     background: var(--card-bg);
@@ -272,6 +279,7 @@ main {
     white-space: nowrap;
     transition: all 0.15s;
     touch-action: manipulation;
+    min-height: 36px;
 }
 
 .filter-chip.active {
@@ -311,12 +319,13 @@ main {
     display: flex;
     align-items: center;
     gap: 0.5rem;
-    padding: 0.6rem 0.75rem;
+    padding: 0.75rem;
     background: var(--card-bg);
     border-radius: var(--radius);
     box-shadow: var(--shadow);
     transition: all 0.15s;
     touch-action: manipulation;
+    min-height: 52px;
 }
 
 .item-card.out-of-stock {
@@ -356,16 +365,15 @@ main {
     border: none;
     font-size: 1.1rem;
     cursor: pointer;
-    padding: 0.25rem;
+    padding: 0.5rem;
     touch-action: manipulation;
-    opacity: 0.5;
-    transition: opacity 0.15s;
-    flex-shrink: 0;
-}
-
-.shop-btn:hover,
-.shop-btn:active {
     opacity: 1;
+    flex-shrink: 0;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 .shop-btn:disabled {
@@ -395,18 +403,18 @@ main {
 .qty-controls {
     display: flex;
     align-items: center;
-    gap: 0.15rem;
+    gap: 0;
     flex-shrink: 0;
 }
 
 .qty-btn {
-    width: 32px;
-    height: 32px;
+    width: 44px;
+    height: 44px;
     border: 1.5px solid var(--border);
     border-radius: 50%;
     background: var(--card-bg);
     cursor: pointer;
-    font-size: 1.1rem;
+    font-size: 1.2rem;
     font-weight: 600;
     color: var(--text-muted);
     display: flex;
@@ -433,7 +441,7 @@ main {
 }
 
 .qty-value {
-    min-width: 2.5rem;
+    min-width: 1.8rem;
     text-align: center;
     font-weight: 700;
     font-size: 0.9rem;
@@ -467,6 +475,13 @@ main {
     display: none !important;
 }
 
+/* Prevent background scroll when modal is open */
+body.modal-open {
+    overflow: hidden;
+    position: fixed;
+    width: 100%;
+}
+
 /* Summary bar */
 .summary-bar {
     text-align: center;
@@ -495,8 +510,10 @@ main {
     max-width: 500px;
     max-height: 90vh;
     overflow-y: auto;
+    overscroll-behavior: contain;
+    -webkit-overflow-scrolling: touch;
     box-shadow: var(--shadow-lg);
-    padding-bottom: var(--safe-bottom);
+    padding-bottom: calc(var(--safe-bottom) + 0.5rem);
     animation: slideUp 0.25s ease-out;
 }
 
@@ -525,6 +542,11 @@ main {
     padding: 0.5rem;
     line-height: 1;
     touch-action: manipulation;
+    min-width: 44px;
+    min-height: 44px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Form */
@@ -554,6 +576,15 @@ form {
     outline: none;
     transition: border-color 0.2s;
     background: var(--card-bg);
+    -webkit-appearance: none;
+    appearance: none;
+    min-height: 44px;
+}
+
+/* Keep native picker for selects on mobile */
+.form-group select {
+    -webkit-appearance: menulist;
+    appearance: menulist;
 }
 
 .form-group input:focus,

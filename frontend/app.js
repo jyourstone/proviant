@@ -325,6 +325,8 @@ function escapeHtml(text) {
 
 // --- Modal ---
 
+let scrollPosition = 0;
+
 function openModal(item = null) {
     const modal = document.getElementById('modal');
     const title = document.getElementById('modal-title');
@@ -348,6 +350,11 @@ function openModal(item = null) {
         deleteBtn.classList.add('hidden');
     }
 
+    // Lock body scroll, preserve position
+    scrollPosition = window.scrollY;
+    document.body.classList.add('modal-open');
+    document.body.style.top = `-${scrollPosition}px`;
+
     modal.classList.remove('hidden');
     setTimeout(() => document.getElementById('form-name').focus(), 100);
     fetchFormCategories();
@@ -355,6 +362,11 @@ function openModal(item = null) {
 
 function closeModal() {
     document.getElementById('modal').classList.add('hidden');
+
+    // Restore body scroll
+    document.body.classList.remove('modal-open');
+    document.body.style.top = '';
+    window.scrollTo(0, scrollPosition);
 }
 
 // --- Event listeners ---
