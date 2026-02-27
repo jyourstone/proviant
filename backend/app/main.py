@@ -1,5 +1,7 @@
 """Proviant — Hemförrådshantering."""
 
+import asyncio
+import logging
 import os
 import re
 import unicodedata
@@ -8,21 +10,123 @@ from pathlib import Path
 from typing import Optional
 
 import httpx
-from fastapi import Depends, FastAPI, Header, HTTPException, Query
+from fastapi import Depends, FastAPI, HTTPException, Query
 from fastapi.responses import HTMLResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel
 from sqlalchemy.orm import Session
 
-from .database import get_db, init_db
+from .database import get_db, init_db, SessionLocal
 from .models import Item, StorageType
 from .schemas import ItemCreate, ItemResponse, ItemSummary, ItemUpdate, QuantityUpdate
+
+logger = logging.getLogger("proviant")
+
+# --- ICA configuration ---
+
+ICA_SESSION_COOKIE = os.environ.get("ICA_SESSION_COOKIE", "")
+ICA_LIST_ID = os.environ.get("ICA_LIST_ID", "")
+ICA_SYNC_INTERVAL = int(os.environ.get("ICA_SYNC_INTERVAL", "10"))  # minutes
+
+ICA_ENABLED = bool(ICA_SESSION_COOKIE and ICA_LIST_ID)
+
+ICA_USER_INFO_URL = "https://www.ica.se/api/user/information"
+ICA_LIST_BASE_URL = "https://apimgw-pub.ica.se/sverige/digx/shopping-list/v1/api/list"
+
+
+# --- ICA API helpers ---
+
+async def ica_get_token() -> str:
+    """Get ICA access token using session cookie."""
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            ICA_USER_INFO_URL,
+            headers={"Cookie": f"thSessionId={ICA_SESSION_COOKIE}"},
+        )
+        resp.raise_for_status()
+        return resp.json()["accessToken"]
+
+
+async def ica_fetch_list(token: str) -> list[dict]:
+    """Fetch the ICA shopping list and return rows."""
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.get(
+            f"{ICA_LIST_BASE_URL}/{ICA_LIST_ID}",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        resp.raise_for_status()
+        return resp.json().get("rows", [])
+
+
+async def ica_add_item(token: str, name: str) -> dict:
+    """Add an item to the ICA shopping list."""
+    async with httpx.AsyncClient(timeout=15) as client:
+        resp = await client.post(
+            f"{ICA_LIST_BASE_URL}/{ICA_LIST_ID}/row",
+            headers={"Authorization": f"Bearer {token}"},
+            json={"text": name, "isStriked": False},
+        )
+        resp.raise_for_status()
+        return resp.json()
+
+
+def ica_item_exists(rows: list[dict], name: str) -> bool:
+    """Check if a non-struck item with matching name exists on the ICA list."""
+    needle = name.lower().strip()
+    return any(
+        r.get("text", "").lower().strip() == needle
+        for r in rows
+        if not r.get("isStriked", False)
+    )
+
+
+# --- Background ICA sync ---
+
+async def _sync_ica_list():
+    """Fetch ICA list and sync on_shopping_list flags in Proviant."""
+    try:
+        token = await ica_get_token()
+        rows = await ica_fetch_list(token)
+        ica_names = [r["text"].strip() for r in rows if r.get("text") and not r.get("isStriked", False)]
+
+        db = SessionLocal()
+        try:
+            all_items = db.query(Item).all()
+            matched = 0
+            for item in all_items:
+                should_be_on = any(items_match(item.name, ica) for ica in ica_names)
+                if item.on_shopping_list != should_be_on:
+                    item.on_shopping_list = should_be_on
+                    if should_be_on:
+                        matched += 1
+            db.commit()
+            logger.info("ICA sync: %d ICA-varor, %d matchade", len(ica_names), matched)
+        finally:
+            db.close()
+    except Exception:
+        logger.exception("ICA sync misslyckades")
+
+
+async def _ica_sync_loop():
+    """Background loop that syncs ICA list on interval."""
+    while True:
+        await _sync_ica_list()
+        await asyncio.sleep(ICA_SYNC_INTERVAL * 60)
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     init_db()
+    if ICA_ENABLED:
+        task = asyncio.create_task(_ica_sync_loop())
+        logger.info("ICA-synk startad (var %d:e minut)", ICA_SYNC_INTERVAL)
     yield
+    if ICA_ENABLED:
+        task.cancel()
+        try:
+            await task
+        except asyncio.CancelledError:
+            pass
 
 
 app = FastAPI(
@@ -186,34 +290,41 @@ def items_match(name_a: str, name_b: str) -> bool:
     return word_boundary_match(a, b) or word_boundary_match(b, a)
 
 
-# --- Shopping list proxy ---
-
-SHOPPING_WEBHOOK_URL = os.environ.get("SHOPPING_WEBHOOK_URL", "")
-SHOPPING_WEBHOOK_KEY = os.environ.get("SHOPPING_WEBHOOK_KEY", "")
+# --- ICA shopping list ---
 
 
 class ShoppingListRequest(BaseModel):
     name: str
 
 
-class IcaSyncRequest(BaseModel):
-    """Payload from n8n with current ICA shopping list items."""
-    items: list[str]  # List of item names currently on ICA list (not struck through)
+@app.get("/api/ica-config")
+def get_ica_config():
+    """Return whether ICA integration is enabled."""
+    return {"enabled": ICA_ENABLED}
 
 
 @app.post("/api/shopping-list")
 async def add_to_shopping_list(req: ShoppingListRequest, db: Session = Depends(get_db)):
-    """Proxy to n8n webhook for ICA shopping list, and mark item locally."""
-    if not SHOPPING_WEBHOOK_URL:
-        raise HTTPException(status_code=501, detail="Shopping list not configured")
-    async with httpx.AsyncClient(timeout=15) as client:
-        resp = await client.post(
-            SHOPPING_WEBHOOK_URL,
-            json={"name": req.name},
-            headers={"X-Api-Key": SHOPPING_WEBHOOK_KEY},
-        )
-    if resp.status_code >= 400:
-        raise HTTPException(status_code=502, detail="ICA request failed")
+    """Add item to ICA shopping list and mark it locally."""
+    if not ICA_ENABLED:
+        raise HTTPException(status_code=503, detail="ICA-integration ej konfigurerad")
+
+    try:
+        token = await ica_get_token()
+        rows = await ica_fetch_list(token)
+
+        if ica_item_exists(rows, req.name):
+            # Mark locally and return early
+            all_items = db.query(Item).all()
+            for item in all_items:
+                if items_match(item.name, req.name):
+                    item.on_shopping_list = True
+            db.commit()
+            return {"ok": True, "alreadyOnList": True, "item": req.name}
+
+        await ica_add_item(token, req.name)
+    except httpx.HTTPError:
+        raise HTTPException(status_code=502, detail="ICA-anrop misslyckades")
 
     # Mark matching Proviant items as on_shopping_list
     all_items = db.query(Item).all()
@@ -222,39 +333,7 @@ async def add_to_shopping_list(req: ShoppingListRequest, db: Session = Depends(g
             item.on_shopping_list = True
     db.commit()
 
-    return resp.json()
-
-
-SYNC_API_KEY = os.environ.get("SYNC_API_KEY", SHOPPING_WEBHOOK_KEY)
-
-
-@app.post("/api/ica-sync")
-def ica_sync(
-    req: IcaSyncRequest,
-    db: Session = Depends(get_db),
-    x_api_key: Optional[str] = Header(None),
-):
-    """Receive the current ICA shopping list from n8n and sync flags.
-
-    Uses normalised word-boundary matching (accent- and case-insensitive)
-    so "Köttbullar" in Proviant matches "Köttbullar fryst" in ICA.
-    """
-    if not SYNC_API_KEY or x_api_key != SYNC_API_KEY:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-
-    ica_names = [name.strip() for name in req.items]
-
-    all_items = db.query(Item).all()
-    matched = 0
-    for item in all_items:
-        should_be_on = any(items_match(item.name, ica) for ica in ica_names)
-        if item.on_shopping_list != should_be_on:
-            item.on_shopping_list = should_be_on
-            if should_be_on:
-                matched += 1
-
-    db.commit()
-    return {"synced": True, "ica_items": len(ica_names), "matched": matched}
+    return {"ok": True, "alreadyOnList": False, "item": req.name}
 
 
 # --- Static files (frontend) ---

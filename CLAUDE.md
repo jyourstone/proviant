@@ -54,6 +54,6 @@ No test suite currently. Verify changes manually via the browser UI or `GET /api
 |----------------|-------------------------------|---------------------------|
 | `DATA_DIR`     | `/app/data`                   | Directory for SQLite file |
 | `DATABASE_URL` | `sqlite:///{DATA_DIR}/proviant.db` | SQLAlchemy connection |
-| `SHOPPING_WEBHOOK_URL` | (none)               | n8n webhook for ICA add   |
-| `SHOPPING_WEBHOOK_KEY` | (none)               | API key for webhook auth  |
-| `SYNC_API_KEY` | falls back to `SHOPPING_WEBHOOK_KEY` | API key for ICA sync endpoint |
+| `ICA_SESSION_COOKIE` | (none)               | ICA `thSessionId` cookie for API auth |
+| `ICA_LIST_ID`  | (none)                        | ICA shopping list UUID    |
+| `ICA_SYNC_INTERVAL` | `10`                    | Minutes between ICA sync  |

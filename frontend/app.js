@@ -5,6 +5,7 @@ let currentStorage = 'freezer';
 let activeFilters = new Set(); // multi-select: 'out_of_stock', 'low_stock', 'expiring'
 let activeCategories = new Set(); // multi-select categories
 let allItems = [];
+let icaEnabled = false;
 
 // --- Category icons ---
 const categoryIcons = {
@@ -218,6 +219,9 @@ function renderItems() {
             const shopIcon = onList ? '📋' : '🛒';
             const shopTitle = onList ? 'Finns på inköpslistan' : 'Lägg på inköpslistan';
             const shopClass = onList ? ' on-list' : '';
+            const shopBtn = icaEnabled
+                ? `<button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" data-category="${escapeHtml(item.category || '')}" title="${shopTitle}">${shopIcon}</button>`
+                : '';
 
             html += `
                 <div class="swipe-container" data-id="${item.id}">
@@ -227,7 +231,7 @@ function renderItems() {
                             <div class="item-name">${escapeHtml(item.name)}</div>
                             ${meta ? `<div class="item-meta">${meta}</div>` : ''}
                         </div>
-                        <button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" title="${shopTitle}">${shopIcon}</button>
+                        ${shopBtn}
                         <div class="qty-controls">
                             <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
                             <span class="qty-value${zeroClass}">${qtyDisplay}</span>
@@ -265,8 +269,9 @@ function renderItems() {
         btn.addEventListener('click', async (e) => {
             e.stopPropagation();
             let name = btn.dataset.name;
-            // Append "fryst" for freezer items unless already present
-            if (currentStorage === 'freezer') {
+            // Append "fryst" for freezer items unless already present or category is Bröd
+            const category = btn.dataset.category || '';
+            if (currentStorage === 'freezer' && category.toLowerCase() !== 'bröd') {
                 const lower = name.toLowerCase();
                 if (!lower.includes('fryst') && !lower.includes('frysta')) {
                     name = name + ' fryst';
@@ -546,7 +551,14 @@ function closeModal() {
 
 // --- Event listeners ---
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
+    // Check if ICA integration is enabled
+    try {
+        const res = await fetch(`${API}/ica-config`);
+        const data = await res.json();
+        icaEnabled = data.enabled;
+    } catch { /* ICA disabled if endpoint unreachable */ }
+
     fetchItems();
 
     // Tab switching
