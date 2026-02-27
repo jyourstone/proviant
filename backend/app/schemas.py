@@ -15,6 +15,7 @@ class ItemCreate(BaseModel):
     quantity: float = Field(default=1.0, ge=0)
     unit: Optional[str] = None
     category: Optional[str] = None
+    tags: Optional[str] = None
     note: Optional[str] = None
     expiry_date: Optional[datetime] = None
 
@@ -26,6 +27,7 @@ class ItemUpdate(BaseModel):
     quantity: Optional[float] = Field(None, ge=0)
     unit: Optional[str] = None
     category: Optional[str] = None
+    tags: Optional[str] = None
     note: Optional[str] = None
     expiry_date: Optional[datetime] = None
 
@@ -43,6 +45,7 @@ class ItemResponse(BaseModel):
     quantity: float
     unit: Optional[str]
     category: Optional[str]
+    tags: Optional[str]
     note: Optional[str]
     expiry_date: Optional[datetime]
     on_shopping_list: bool = False

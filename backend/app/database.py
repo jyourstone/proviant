@@ -33,6 +33,10 @@ def _migrate(eng):
                 conn.execute(text(
                     "ALTER TABLE items ADD COLUMN on_shopping_list BOOLEAN NOT NULL DEFAULT 0"
                 ))
+            if "tags" not in cols:
+                conn.execute(text(
+                    "ALTER TABLE items ADD COLUMN tags VARCHAR(500)"
+                ))
 
 
 def get_db():

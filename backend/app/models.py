@@ -27,6 +27,7 @@ class Item(Base):
     quantity = Column(Float, nullable=False, default=1.0)
     unit = Column(String(50), nullable=True)
     category = Column(String(100), nullable=True)
+    tags = Column(String(500), nullable=True)  # comma-separated
     note = Column(Text, nullable=True)
     expiry_date = Column(DateTime, nullable=True)
     on_shopping_list = Column(Boolean, nullable=False, default=False, server_default="0")

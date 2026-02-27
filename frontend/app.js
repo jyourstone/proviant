@@ -4,8 +4,12 @@ const API = '/api';
 let currentStorage = 'freezer';
 let activeFilters = new Set(); // multi-select: 'out_of_stock', 'low_stock', 'expiring'
 let activeCategories = new Set(); // multi-select categories
+let activeTags = new Set(); // multi-select tags
 let allItems = [];
 let icaEnabled = false;
+let sortBy = 'name';          // 'name' or 'quantity'
+let sortAsc = true;           // true = ascending, false = descending
+let sortGrouped = true;       // true = with categories, false = flat list
 
 // --- Category icons ---
 const categoryIcons = {
@@ -49,6 +53,7 @@ async function fetchItems() {
                 const days = Math.ceil((new Date(i.expiry_date) - now) / (1000 * 60 * 60 * 24));
                 if (days >= 0 && days <= 30) return true;
             }
+            if (activeFilters.has('not_on_ica') && !i.on_shopping_list) return true;
             return false;
         });
     }
@@ -58,9 +63,19 @@ async function fetchItems() {
         items = items.filter(i => activeCategories.has(i.category || 'Övrigt'));
     }
 
+    // Client-side tag filter (OR logic: show items matching ANY selected tag)
+    if (activeTags.size > 0) {
+        items = items.filter(i => {
+            if (!i.tags) return false;
+            const itemTags = i.tags.split(',').map(t => t.trim());
+            return itemTags.some(t => activeTags.has(t));
+        });
+    }
+
     allItems = items;
     renderItems();
     fetchCategoryFilters();
+    fetchTagFilters();
     updateFilterTags();
 }
 
@@ -94,7 +109,12 @@ async function fetchCategoryFilters() {
 function updateFilterTags() {
     const container = document.getElementById('active-filter-tags');
     const filterBtn = document.getElementById('filter-toggle');
-    const total = activeFilters.size + activeCategories.size;
+    const total = activeFilters.size + activeCategories.size + activeTags.size;
+
+    // Sync status filter chip highlights
+    document.querySelectorAll('#filters .filter-chip').forEach(chip => {
+        chip.classList.toggle('active', activeFilters.has(chip.dataset.filter));
+    });
 
     if (total === 0) {
         container.innerHTML = '';
@@ -108,6 +128,7 @@ function updateFilterTags() {
         out_of_stock: '🔴 Slut',
         low_stock: '🟡 Nästan slut',
         expiring: '⏰ Utgår snart',
+        not_on_ica: '🛒 Ej i ICA',
     };
 
     let html = '';
@@ -117,14 +138,19 @@ function updateFilterTags() {
     for (const c of activeCategories) {
         html += `<span class="filter-tag" data-type="category" data-value="${c}">${getCategoryIcon(c)} ${c} ✕</span>`;
     }
+    for (const t of activeTags) {
+        html += `<span class="filter-tag" data-type="tag" data-value="${t}">🏷️ ${escapeHtml(t)} ✕</span>`;
+    }
     container.innerHTML = html;
 
     container.querySelectorAll('.filter-tag').forEach(tag => {
         tag.addEventListener('click', () => {
             if (tag.dataset.type === 'status') {
                 activeFilters.delete(tag.dataset.value);
-            } else {
+            } else if (tag.dataset.type === 'category') {
                 activeCategories.delete(tag.dataset.value);
+            } else if (tag.dataset.type === 'tag') {
+                activeTags.delete(tag.dataset.value);
             }
             fetchItems();
         });
@@ -136,6 +162,40 @@ async function fetchFormCategories() {
     const categories = await res.json();
     document.getElementById('categories-list').innerHTML =
         categories.map(c => `<option value="${c}">`).join('');
+}
+
+async function fetchTagFilters() {
+    const res = await fetch(`${API}/tags?storage_type=${currentStorage}`);
+    const tags = await res.json();
+    const container = document.getElementById('tag-filters');
+
+    if (tags.length === 0) {
+        container.innerHTML = '<span style="color:var(--text-light);font-size:0.8rem">Inga taggar ännu</span>';
+        return;
+    }
+
+    container.innerHTML = tags.map(t =>
+        `<button class="filter-chip${activeTags.has(t) ? ' active' : ''}" data-tag="${escapeHtml(t)}">🏷️ ${escapeHtml(t)}</button>`
+    ).join('');
+
+    container.querySelectorAll('.filter-chip').forEach(btn => {
+        btn.addEventListener('click', () => {
+            const tag = btn.dataset.tag;
+            if (activeTags.has(tag)) {
+                activeTags.delete(tag);
+            } else {
+                activeTags.add(tag);
+            }
+            fetchItems();
+        });
+    });
+}
+
+async function fetchFormTags() {
+    const res = await fetch(`${API}/tags?storage_type=${currentStorage}`);
+    const tags = await res.json();
+    document.getElementById('tags-list').innerHTML =
+        tags.map(t => `<option value="${t}">`).join('');
 }
 
 async function updateQuantity(id, newQty) {
@@ -183,6 +243,41 @@ async function addToShoppingList(name) {
 
 // --- Rendering ---
 
+function buildItemCard(item) {
+    const oosClass = item.quantity === 0 ? ' out-of-stock' : '';
+    const meta = buildMeta(item);
+    const qtyDisplay = formatQuantity(item);
+    const zeroClass = item.quantity === 0 ? ' zero' : '';
+    const step = 0.5;
+
+    const onList = item.on_shopping_list;
+    const shopIcon = onList ? '📋' : '🛒';
+    const shopTitle = onList ? 'Finns på inköpslistan' : 'Lägg på inköpslistan';
+    const shopClass = onList ? ' on-list' : '';
+    const shopBtn = icaEnabled
+        ? `<button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" data-category="${escapeHtml(item.category || '')}" title="${shopTitle}">${shopIcon}</button>`
+        : '';
+
+    return `
+        <div class="swipe-container" data-id="${item.id}">
+            <div class="swipe-action-bg" data-id="${item.id}">🗑️ Ta bort</div>
+            <div class="item-card${oosClass}">
+                <div class="item-info" data-id="${item.id}">
+                    <div class="item-name">${escapeHtml(item.name)}</div>
+                    ${item.tags ? `<div class="item-tags">${item.tags.split(',').map(t => `<span class="item-tag">🏷️ ${escapeHtml(t.trim())}</span>`).join('')}</div>` : ''}
+                    ${meta ? `<div class="item-meta">${meta}</div>` : ''}
+                </div>
+                ${shopBtn}
+                <div class="qty-controls">
+                    <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
+                    <span class="qty-value${zeroClass}">${qtyDisplay}</span>
+                    <button class="qty-btn plus" data-id="${item.id}" data-step="${step}">+</button>
+                </div>
+            </div>
+        </div>
+    `;
+}
+
 function renderItems() {
     const container = document.getElementById('items-list');
     const emptyState = document.getElementById('empty-state');
@@ -197,49 +292,34 @@ function renderItems() {
 
     emptyState.classList.add('hidden');
 
-    // Group by category
-    const groups = {};
-    for (const item of allItems) {
-        const cat = item.category || 'Övrigt';
-        if (!groups[cat]) groups[cat] = [];
-        groups[cat].push(item);
-    }
+    const dir = sortAsc ? 1 : -1;
+    const sortFn = sortBy === 'quantity'
+        ? (a, b) => (a.quantity - b.quantity) * dir
+        : (a, b) => a.name.localeCompare(b.name, 'sv') * dir;
 
     let html = '';
-    for (const [category, items] of Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0], 'sv'))) {
-        html += `<div class="category-header">${getCategoryIcon(category)} ${category}</div>`;
-        for (const item of items) {
-            const oosClass = item.quantity === 0 ? ' out-of-stock' : '';
-            const meta = buildMeta(item);
-            const qtyDisplay = formatQuantity(item);
-            const zeroClass = item.quantity === 0 ? ' zero' : '';
-            const step = 0.5;
 
-            const onList = item.on_shopping_list;
-            const shopIcon = onList ? '📋' : '🛒';
-            const shopTitle = onList ? 'Finns på inköpslistan' : 'Lägg på inköpslistan';
-            const shopClass = onList ? ' on-list' : '';
-            const shopBtn = icaEnabled
-                ? `<button class="shop-btn${shopClass}" data-name="${escapeHtml(item.name)}" data-category="${escapeHtml(item.category || '')}" title="${shopTitle}">${shopIcon}</button>`
-                : '';
+    if (sortGrouped) {
+        // Group by category, sort within each group
+        const groups = {};
+        for (const item of allItems) {
+            const cat = item.category || 'Övrigt';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(item);
+        }
 
-            html += `
-                <div class="swipe-container" data-id="${item.id}">
-                    <div class="swipe-action-bg" data-id="${item.id}">🗑️ Ta bort</div>
-                    <div class="item-card${oosClass}">
-                        <div class="item-info" data-id="${item.id}">
-                            <div class="item-name">${escapeHtml(item.name)}</div>
-                            ${meta ? `<div class="item-meta">${meta}</div>` : ''}
-                        </div>
-                        ${shopBtn}
-                        <div class="qty-controls">
-                            <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
-                            <span class="qty-value${zeroClass}">${qtyDisplay}</span>
-                            <button class="qty-btn plus" data-id="${item.id}" data-step="${step}">+</button>
-                        </div>
-                    </div>
-                </div>
-            `;
+        for (const [category, items] of Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0], 'sv'))) {
+            items.sort(sortFn);
+            html += `<div class="category-header">${getCategoryIcon(category)} ${category}</div>`;
+            for (const item of items) {
+                html += buildItemCard(item);
+            }
+        }
+    } else {
+        // Flat list, sort everything together
+        const sorted = [...allItems].sort(sortFn);
+        for (const item of sorted) {
+            html += buildItemCard(item);
         }
     }
 
@@ -307,11 +387,12 @@ function renderItems() {
         btn.addEventListener('click', (e) => {
             e.stopPropagation();
             const id = parseInt(btn.dataset.id);
-            const step = parseFloat(btn.dataset.step);
             const item = allItems.find(i => i.id === id);
             if (!item) return;
-            const delta = btn.classList.contains('plus') ? step : -step;
-            const newQty = Math.round(Math.max(0, item.quantity + delta) * 10) / 10;
+            const q = item.quantity;
+            const newQty = btn.classList.contains('plus')
+                ? Math.floor(q * 2 + 1) / 2         // next 0.5 boundary up
+                : Math.max(0, Math.ceil(q * 2 - 1) / 2); // next 0.5 boundary down
             updateQuantity(id, newQty);
         });
     });
@@ -323,7 +404,7 @@ function renderItems() {
 function formatQuantity(item) {
     const q = item.quantity;
     const u = item.unit || '';
-    const qStr = q % 1 === 0 ? q.toString() : q.toFixed(1);
+    const qStr = q % 1 === 0 ? q.toString() : parseFloat(q.toFixed(2)).toString();
     return u ? `${qStr} ${u}` : qStr;
 }
 
@@ -503,6 +584,64 @@ function initSwipe(container) {
     }, { passive: true });
 }
 
+// --- Sort labels ---
+
+const sortLabels = { name: 'Namn', quantity: 'Antal' };
+
+function updateSortChipLabels() {
+    document.querySelectorAll('#sort-by .sort-chip').forEach(chip => {
+        const key = chip.dataset.sort;
+        const arrow = chip.classList.contains('active') ? (sortAsc ? ' ↑' : ' ↓') : '';
+        chip.textContent = sortLabels[key] + arrow;
+    });
+}
+
+// --- Tag input helpers ---
+
+let formTags = []; // current tags in the form
+
+function renderFormTagPills() {
+    const container = document.getElementById('form-tags-pills');
+    container.innerHTML = formTags.map((t, i) =>
+        `<span class="tag-pill" data-index="${i}">${escapeHtml(t)} <span class="tag-pill-remove">✕</span></span>`
+    ).join('');
+    container.querySelectorAll('.tag-pill-remove').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            const index = parseInt(btn.parentElement.dataset.index);
+            formTags.splice(index, 1);
+            renderFormTagPills();
+        });
+    });
+}
+
+function addFormTag(value) {
+    const tag = value.trim();
+    if (!tag || formTags.includes(tag)) return;
+    formTags.push(tag);
+    renderFormTagPills();
+}
+
+function initTagInput() {
+    const input = document.getElementById('form-tags');
+
+    input.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ',') {
+            e.preventDefault();
+            addFormTag(input.value);
+            input.value = '';
+        }
+    });
+
+    // Handle datalist selection (fires 'input' event on iOS/Android)
+    input.addEventListener('change', () => {
+        if (input.value.trim()) {
+            addFormTag(input.value);
+            input.value = '';
+        }
+    });
+}
+
 // --- Modal ---
 
 let scrollPosition = 0;
@@ -521,14 +660,18 @@ function openModal(item = null) {
         document.getElementById('form-category').value = item.category || '';
         document.getElementById('form-note').value = item.note || '';
         document.getElementById('form-expiry').value = item.expiry_date ? item.expiry_date.split('T')[0] : '';
+        formTags = item.tags ? item.tags.split(',').map(t => t.trim()).filter(Boolean) : [];
         deleteBtn.classList.remove('hidden');
     } else {
         title.textContent = 'Lägg till';
         document.getElementById('item-form').reset();
         document.getElementById('form-id').value = '';
         document.getElementById('form-quantity').value = '1';
+        formTags = [];
         deleteBtn.classList.add('hidden');
     }
+    renderFormTagPills();
+    document.getElementById('form-tags').value = '';
 
     // Lock body scroll, preserve position
     scrollPosition = window.scrollY;
@@ -538,6 +681,7 @@ function openModal(item = null) {
     modal.classList.remove('hidden');
     setTimeout(() => document.getElementById('form-name').focus(), 100);
     fetchFormCategories();
+    fetchFormTags();
 }
 
 function closeModal() {
@@ -568,6 +712,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             tab.classList.add('active');
             currentStorage = tab.dataset.storage;
             activeCategories.clear();
+            activeTags.clear();
             fetchItems();
         });
     });
@@ -581,6 +726,44 @@ document.addEventListener('DOMContentLoaded', async () => {
         const match = btn.textContent.match(/Filter(.*)/);
         btn.textContent = `${arrow} Filter${match ? match[1] : ''}`;
     });
+
+    // Sort panel toggle
+    document.getElementById('sort-toggle').addEventListener('click', () => {
+        const panel = document.getElementById('sort-panel');
+        const btn = document.getElementById('sort-toggle');
+        panel.classList.toggle('hidden');
+        const arrow = panel.classList.contains('hidden') ? '🔽' : '🔼';
+        btn.textContent = `${arrow} Sortering`;
+    });
+
+    // Sort options
+    document.querySelectorAll('#sort-by .sort-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            if (chip.classList.contains('active')) {
+                // Toggle direction
+                sortAsc = !sortAsc;
+            } else {
+                // Switch sort field, reset to ascending
+                document.querySelector('#sort-by .sort-chip.active').classList.remove('active');
+                chip.classList.add('active');
+                sortBy = chip.dataset.sort;
+                sortAsc = true;
+            }
+            updateSortChipLabels();
+            renderItems();
+        });
+    });
+
+    document.querySelectorAll('#sort-group .sort-chip').forEach(chip => {
+        chip.addEventListener('click', () => {
+            document.querySelector('#sort-group .sort-chip.active').classList.remove('active');
+            chip.classList.add('active');
+            sortGrouped = chip.dataset.group === 'true';
+            renderItems();
+        });
+    });
+
+    updateSortChipLabels();
 
     // Status filters (multi-select toggle)
     document.querySelectorAll('#filters .filter-chip').forEach(chip => {
@@ -603,6 +786,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(fetchItems, 250);
     });
+
+    // Tag input
+    initTagInput();
 
     // Add button
     document.getElementById('add-btn').addEventListener('click', () => openModal());
@@ -628,6 +814,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             quantity: parseFloat(document.getElementById('form-quantity').value) || 0,
             unit: document.getElementById('form-unit').value || null,
             category: document.getElementById('form-category').value.trim() || null,
+            tags: formTags.length > 0 ? formTags.join(',') : null,
             note: document.getElementById('form-note').value.trim() || null,
             expiry_date: document.getElementById('form-expiry').value || null,
         };

@@ -182,6 +182,7 @@ def create_item(item: ItemCreate, db: Session = Depends(get_db)):
         quantity=item.quantity,
         unit=item.unit,
         category=item.category,
+        tags=item.tags,
         note=item.note,
         expiry_date=item.expiry_date,
     )
@@ -257,6 +258,24 @@ def list_categories(
         q = q.filter(Item.storage_type == storage_type)
     categories = sorted(set(c[0] for c in q.distinct().all()))
     return categories
+
+
+@app.get("/api/tags")
+def list_tags(
+    storage_type: Optional[StorageType] = Query(None),
+    db: Session = Depends(get_db),
+):
+    """List all unique tags (split from comma-separated values)."""
+    q = db.query(Item.tags).filter(Item.tags.isnot(None), Item.tags != "")
+    if storage_type:
+        q = q.filter(Item.storage_type == storage_type)
+    all_tags = set()
+    for (tags_str,) in q.all():
+        for tag in tags_str.split(","):
+            tag = tag.strip()
+            if tag:
+                all_tags.add(tag)
+    return sorted(all_tags)
 
 
 # --- Text normalisation helpers ---
