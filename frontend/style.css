@@ -113,9 +113,16 @@ main {
     margin-bottom: 0.5rem;
 }
 
-.toolbar input {
+.search-wrapper {
     flex: 1;
-    padding: 0.6rem 0.75rem;
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.search-wrapper input {
+    width: 100%;
+    padding: 0.6rem 2.2rem 0.6rem 0.75rem;
     border: 2px solid var(--border);
     border-radius: var(--radius);
     font-size: 1rem;
@@ -127,8 +134,38 @@ main {
     min-height: 44px;
 }
 
-.toolbar input:focus {
+/* Hide native search clear button */
+.search-wrapper input[type="search"]::-webkit-search-cancel-button {
+    -webkit-appearance: none;
+}
+
+.search-wrapper input:focus {
     border-color: var(--primary);
+}
+
+.search-clear {
+    position: absolute;
+    right: 0.4rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.9rem;
+    cursor: pointer;
+    padding: 0.3rem 0.4rem;
+    line-height: 1;
+    border-radius: 50%;
+    display: none;
+    touch-action: manipulation;
+}
+
+.search-clear:active {
+    background: var(--border);
+}
+
+.search-wrapper.has-value .search-clear {
+    display: flex;
+    align-items: center;
+    justify-content: center;
 }
 
 /* Buttons */

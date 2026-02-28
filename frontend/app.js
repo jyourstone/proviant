@@ -844,8 +844,24 @@ document.addEventListener('DOMContentLoaded', async () => {
     });
 
     // Search (debounced)
+    const searchInput = document.getElementById('search');
+    const searchWrapper = searchInput.closest('.search-wrapper');
+    const searchClear = document.getElementById('search-clear');
+
+    function updateSearchClear() {
+        searchWrapper.classList.toggle('has-value', searchInput.value.length > 0);
+    }
+
+    searchClear.addEventListener('click', () => {
+        searchInput.value = '';
+        updateSearchClear();
+        searchInput.focus();
+        fetchItems();
+    });
+
     let searchTimeout;
-    document.getElementById('search').addEventListener('input', () => {
+    searchInput.addEventListener('input', () => {
+        updateSearchClear();
         clearTimeout(searchTimeout);
         searchTimeout = setTimeout(fetchItems, 250);
     });

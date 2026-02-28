@@ -30,7 +30,10 @@
 
     <main>
         <div class="toolbar">
-            <input type="search" id="search" placeholder="Sök..." autocomplete="off" enterkeyhint="search">
+            <div class="search-wrapper">
+                <input type="search" id="search" placeholder="Sök..." autocomplete="off" enterkeyhint="search">
+                <button id="search-clear" class="search-clear" aria-label="Rensa sökning">✕</button>
+            </div>
             <button id="add-btn" class="btn btn-primary">+ Ny</button>
         </div>
 
