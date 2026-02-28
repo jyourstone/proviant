@@ -120,16 +120,16 @@
                 </div>
                 <div class="form-group">
                     <label for="form-category">Kategori</label>
-                    <input type="text" id="form-category" list="categories-list" placeholder="T.ex. Kött, Grönsaker, Bröd">
-                    <datalist id="categories-list"></datalist>
+                    <div class="autocomplete-wrapper">
+                        <input type="text" id="form-category" placeholder="T.ex. Kött, Grönsaker, Bröd" autocomplete="off">
+                    </div>
                 </div>
                 <div class="form-group">
                     <label for="form-tags">Taggar</label>
-                    <div class="tag-input-container">
+                    <div class="tag-input-container autocomplete-wrapper">
                         <div id="form-tags-pills" class="tag-pills"></div>
-                        <input type="text" id="form-tags" list="tags-list" placeholder="Lägg till tagg...">
+                        <input type="text" id="form-tags" placeholder="Lägg till tagg..." autocomplete="off">
                     </div>
-                    <datalist id="tags-list"></datalist>
                 </div>
                 <div class="form-group">
                     <label for="form-note">Anteckning</label>

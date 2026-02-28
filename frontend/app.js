@@ -157,11 +157,66 @@ function updateFilterTags() {
     });
 }
 
+let availableCategories = [];
+let availableTags = [];
+
 async function fetchFormCategories() {
     const res = await fetch(`${API}/categories?storage_type=${currentStorage}`);
-    const categories = await res.json();
-    document.getElementById('categories-list').innerHTML =
-        categories.map(c => `<option value="${c}">`).join('');
+    availableCategories = await res.json();
+}
+
+function setupAutocomplete(input, getOptions, onSelect) {
+    let dropdown = null;
+
+    function createDropdown(options) {
+        removeDropdown();
+        if (!options.length) return;
+
+        dropdown = document.createElement('ul');
+        dropdown.className = 'autocomplete-dropdown';
+
+        options.forEach(opt => {
+            const li = document.createElement('li');
+            li.className = 'autocomplete-item';
+            li.textContent = opt;
+
+            // mousedown fires before blur on desktop
+            li.addEventListener('mousedown', (e) => {
+                e.preventDefault();
+                onSelect(opt);
+                removeDropdown();
+            });
+
+            // touchstart for iOS — fires before the blur that would close the dropdown
+            li.addEventListener('touchstart', (e) => {
+                e.preventDefault();
+                onSelect(opt);
+                removeDropdown();
+            }, { passive: false });
+
+            dropdown.appendChild(li);
+        });
+
+        const wrapper = input.closest('.autocomplete-wrapper') || input.parentElement;
+        wrapper.appendChild(dropdown);
+    }
+
+    function removeDropdown() {
+        if (dropdown) { dropdown.remove(); dropdown = null; }
+    }
+
+    function filterAndShow() {
+        const val = input.value.trim().toLowerCase();
+        if (!val) { removeDropdown(); return; }
+        const opts = getOptions()
+            .filter(o => o.toLowerCase().includes(val))
+            .slice(0, 8);
+        createDropdown(opts);
+    }
+
+    input.addEventListener('input', filterAndShow);
+    input.addEventListener('focus', () => { if (input.value.trim()) filterAndShow(); });
+    input.addEventListener('blur', () => { setTimeout(removeDropdown, 200); });
 }
 
 async function fetchTagFilters() {
@@ -193,9 +248,7 @@ async function fetchTagFilters() {
 
 async function fetchFormTags() {
     const res = await fetch(`${API}/tags?storage_type=${currentStorage}`);
-    const tags = await res.json();
-    document.getElementById('tags-list').innerHTML =
-        tags.map(t => `<option value="${t}">`).join('');
+    availableTags = await res.json();
 }
 
 async function updateQuantity(id, newQty) {
@@ -633,13 +686,23 @@ function initTagInput() {
         }
     });
 
-    // Handle datalist selection (fires 'input' event on iOS/Android)
-    input.addEventListener('change', () => {
-        if (input.value.trim()) {
-            addFormTag(input.value);
+    setupAutocomplete(
+        input,
+        () => availableTags.filter(t => !formTags.includes(t)),
+        (val) => {
+            addFormTag(val);
             input.value = '';
         }
-    });
+    );
+}
+
+function initCategoryInput() {
+    const input = document.getElementById('form-category');
+    setupAutocomplete(
+        input,
+        () => availableCategories,
+        (val) => { input.value = val; }
+    );
 }
 
 // --- Modal ---
@@ -789,6 +852,9 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     // Tag input
     initTagInput();
+
+    // Category input autocomplete
+    initCategoryInput();
 
     // Add button
     document.getElementById('add-btn').addEventListener('click', () => openModal());
