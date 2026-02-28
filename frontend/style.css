@@ -115,13 +115,15 @@ main {
 
 .search-wrapper {
     flex: 1;
-    position: relative;
-    display: block;
+    display: flex;
+    align-items: center;
+    min-width: 0;
 }
 
 .search-wrapper input {
-    width: 100%;
-    padding: 0.6rem 2.2rem 0.6rem 0.75rem;
+    flex: 1;
+    min-width: 0;
+    padding: 0.6rem 0.75rem;
     border: 2px solid var(--border);
     border-radius: var(--radius);
     font-size: 1rem;
@@ -143,30 +145,35 @@ main {
 }
 
 .search-clear {
-    position: absolute;
-    right: 0.4rem;
-    top: 50%;
-    transform: translateY(-50%);
+    flex-shrink: 0;
+    width: 2rem;
+    height: 2rem;
+    margin-left: -2rem;       /* pull back into the input */
+    padding-right: 0.4rem;    /* keep ✕ away from border */
     background: none;
     border: none;
     color: var(--text-muted);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     cursor: pointer;
-    padding: 0.3rem 0.4rem;
-    line-height: 1;
-    border-radius: 50%;
     display: none;
+    align-items: center;
+    justify-content: center;
     touch-action: manipulation;
+    position: relative;       /* render above input */
+    z-index: 1;
 }
 
 .search-clear:active {
-    background: var(--border);
+    color: var(--text);
 }
 
 .search-wrapper.has-value .search-clear {
     display: flex;
-    align-items: center;
-    justify-content: center;
+}
+
+/* Extra right padding on input when clear button is visible */
+.search-wrapper.has-value input {
+    padding-right: 2rem;
 }
 
 /* Buttons */
