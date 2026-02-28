@@ -176,6 +176,18 @@ main {
     padding-right: 2rem;
 }
 
+/* Larger clear button on mobile/iPhone */
+@media (max-width: 499px) {
+    .search-clear {
+        font-size: 1.1rem;
+        width: 2.5rem;
+        margin-left: -2.5rem;
+    }
+    .search-wrapper.has-value input {
+        padding-right: 2.5rem;
+    }
+}
+
 /* Buttons */
 .btn {
     padding: 0.6rem 1rem;
