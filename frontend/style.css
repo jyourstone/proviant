@@ -116,8 +116,7 @@ main {
 .search-wrapper {
     flex: 1;
     position: relative;
-    display: flex;
-    align-items: center;
+    display: block;
 }
 
 .search-wrapper input {
@@ -146,6 +145,8 @@ main {
 .search-clear {
     position: absolute;
     right: 0.4rem;
+    top: 50%;
+    transform: translateY(-50%);
     background: none;
     border: none;
     color: var(--text-muted);
