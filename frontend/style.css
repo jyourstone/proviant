@@ -112,7 +112,7 @@ main {
     gap: 0.5rem;
     margin-bottom: 0.5rem;
     position: sticky;
-    top: calc(var(--safe-top) + 64px);
+    top: calc(var(--safe-top) + 0.9rem + 44px);
     z-index: 9;
     background: var(--bg);
     padding: 0.25rem 0 0.5rem;
