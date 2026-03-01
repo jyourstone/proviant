@@ -504,12 +504,12 @@ main {
     border: none;
     font-size: 1.1rem;
     cursor: pointer;
-    padding: 0.5rem 0.15rem 0.5rem 0.5rem;
+    padding: 0.25rem 0.1rem;
     touch-action: manipulation;
     opacity: 1;
     flex-shrink: 0;
-    min-width: 44px;
-    min-height: 44px;
+    min-width: 28px;
+    min-height: 36px;
     display: flex;
     align-items: center;
     justify-content: center;

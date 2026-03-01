@@ -315,12 +315,12 @@ function buildItemCard(item) {
         <div class="swipe-container" data-id="${item.id}">
             <div class="swipe-action-bg" data-id="${item.id}">🗑️ Ta bort</div>
             <div class="item-card${oosClass}">
+                ${shopBtn}
                 <div class="item-info" data-id="${item.id}">
                     <div class="item-name">${escapeHtml(item.name)}</div>
                     ${item.tags ? `<div class="item-tags">${item.tags.split(',').map(t => `<span class="item-tag">🏷️ ${escapeHtml(t.trim())}</span>`).join('')}</div>` : ''}
                     ${meta ? `<div class="item-meta">${meta}</div>` : ''}
                 </div>
-                ${shopBtn}
                 <div class="qty-controls">
                     <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
                     <span class="qty-value${zeroClass}">${qtyDisplay}</span>
