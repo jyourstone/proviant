@@ -11,24 +11,6 @@ let sortBy = 'name';          // 'name' or 'quantity'
 let sortAsc = true;           // true = ascending, false = descending
 let sortGrouped = true;       // true = with categories, false = flat list
 
-// --- Category icons ---
-const categoryIcons = {
-    'kött': '🥩', 'fågel': '🍗', 'fisk': '🐟', 'skaldjur': '🦐',
-    'grönsaker': '🥦', 'frukt': '🍎', 'bröd': '🍞', 'mejeri': '🧈',
-    'glass': '🍦', 'färdigmat': '🍱', 'dryck': '🥤', 'kryddor': '🧂',
-    'pasta': '🍝', 'ris': '🍚', 'konserv': '🥫', 'snacks': '🍿',
-    'matlåd': '🥡', 'bakning': '🧁', 'såser': '🫙', 'övrigt': '📦',
-};
-
-function getCategoryIcon(category) {
-    if (!category) return '📦';
-    const lower = category.toLowerCase();
-    for (const [key, icon] of Object.entries(categoryIcons)) {
-        if (lower.includes(key)) return icon;
-    }
-    return '📦';
-}
-
 const storageLabels = {
     freezer: 'frysen', fridge: 'kylen', pantry: 'skafferiet',
 };
@@ -90,7 +72,7 @@ async function fetchCategoryFilters() {
     }
 
     container.innerHTML = categories.map(c =>
-        `<button class="filter-chip${activeCategories.has(c) ? ' active' : ''}" data-category="${c}">${getCategoryIcon(c)} ${c}</button>`
+        `<button class="filter-chip${activeCategories.has(c) ? ' active' : ''}" data-category="${c}">${c}</button>`
     ).join('');
 
     container.querySelectorAll('.filter-chip').forEach(btn => {
@@ -136,7 +118,7 @@ function updateFilterTags() {
         html += `<span class="filter-tag" data-type="status" data-value="${f}">${labels[f]} ✕</span>`;
     }
     for (const c of activeCategories) {
-        html += `<span class="filter-tag" data-type="category" data-value="${c}">${getCategoryIcon(c)} ${c} ✕</span>`;
+        html += `<span class="filter-tag" data-type="category" data-value="${c}">${c} ✕</span>`;
     }
     for (const t of activeTags) {
         html += `<span class="filter-tag" data-type="tag" data-value="${t}">🏷️ ${escapeHtml(t)} ✕</span>`;
@@ -368,7 +350,7 @@ function renderItems() {
 
         for (const [category, items] of Object.entries(groups).sort((a, b) => a[0].localeCompare(b[0], 'sv'))) {
             items.sort(sortFn);
-            html += `<div class="category-header">${getCategoryIcon(category)} ${category}</div>`;
+            html += `<div class="category-header">${category}</div>`;
             for (const item of items) {
                 html += buildItemCard(item);
             }

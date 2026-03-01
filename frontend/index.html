@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
     <meta name="apple-mobile-web-app-title" content="Proviant">
-    <meta name="theme-color" content="#607E8C">
+    <meta name="theme-color" content="#4689be">
     <link rel="manifest" href="/manifest.json">
     <link rel="apple-touch-icon" sizes="180x180" href="/images/apple-touch-icon.png">
     <title>Proviant</title>
@@ -23,9 +23,9 @@
     </header>
 
     <nav class="storage-tabs">
-        <button class="tab active" data-storage="freezer">🧊 Frys</button>
-        <button class="tab" data-storage="fridge">🥛 Kyl</button>
-        <button class="tab" data-storage="pantry">🏪 Skafferi</button>
+        <button class="tab active" data-storage="freezer">Frys</button>
+        <button class="tab" data-storage="fridge">Kyl</button>
+        <button class="tab" data-storage="pantry">Skafferi</button>
     </nav>
 
     <main>
@@ -34,7 +34,7 @@
                 <input type="search" id="search" placeholder="Sök..." autocomplete="off" enterkeyhint="search">
                 <button id="search-clear" class="search-clear" aria-label="Rensa sökning">✕</button>
             </div>
-            <button id="add-btn" class="btn btn-primary">+ Ny</button>
+            <button id="add-btn" class="btn btn-primary btn-add">+</button>
         </div>
 
         <div class="filter-bar">
@@ -83,7 +83,7 @@
         <div id="items-container">
             <div id="items-list"></div>
             <div id="empty-state" class="empty-state hidden">
-                <p>Tomt här! Tryck <strong>+ Ny</strong> för att lägga till.</p>
+                <p>Tomt här! Tryck <strong>+</strong> för att lägga till.</p>
             </div>
         </div>
 

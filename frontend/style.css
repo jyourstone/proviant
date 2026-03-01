@@ -2,8 +2,8 @@
 /* Mobile-first design */
 
 :root {
-    --primary: #607E8C;
-    --primary-hover: #4F6A78;
+    --primary: #4689be;
+    --primary-hover: #3a74a1;
     --danger: #c45050;
     --danger-hover: #a84343;
     --warning: #f59e0b;
@@ -111,6 +111,11 @@ main {
     display: flex;
     gap: 0.5rem;
     margin-bottom: 0.5rem;
+    position: sticky;
+    top: calc(var(--safe-top) + 64px);
+    z-index: 9;
+    background: var(--bg);
+    padding: 0.25rem 0 0.5rem;
 }
 
 .search-wrapper {
@@ -210,6 +215,13 @@ main {
 .btn-primary:active {
     background: var(--primary-hover);
     transform: scale(0.97);
+}
+
+.btn-add {
+    font-size: 1.4rem;
+    font-weight: 400;
+    padding: 0.4rem 0.9rem;
+    line-height: 1;
 }
 
 .btn-secondary {
