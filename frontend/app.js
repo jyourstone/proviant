@@ -300,6 +300,8 @@ function buildItemCard(item) {
     const oosClass = item.quantity === 0 ? ' out-of-stock' : '';
     const meta = buildMeta(item);
     const qtyDisplay = formatQuantity(item);
+    const qtyNum = item.quantity % 1 === 0 ? item.quantity.toString() : parseFloat(item.quantity.toFixed(2)).toString();
+    const qtyUnit = item.unit || '';
     const zeroClass = item.quantity === 0 ? ' zero' : '';
     const step = 0.5;
 
@@ -323,7 +325,10 @@ function buildItemCard(item) {
                 </div>
                 <div class="qty-controls">
                     <button class="qty-btn minus" data-id="${item.id}" data-step="${step}">−</button>
-                    <span class="qty-value${zeroClass}">${qtyDisplay}</span>
+                    <div class="qty-display">
+                        <span class="qty-value${zeroClass}">${qtyNum}</span>
+                        ${qtyUnit ? `<span class="qty-unit">${escapeHtml(qtyUnit)}</span>` : ''}
+                    </div>
                     <button class="qty-btn plus" data-id="${item.id}" data-step="${step}">+</button>
                 </div>
             </div>
